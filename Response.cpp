@@ -1,0 +1,50 @@
+#include "Response.hpp"
+
+Response::Response() {}
+Response::~Response() {}
+
+void	Response::_add_static_body() {
+	std::string		line;
+	std::ifstream	inFileStream;
+
+	inFileStream.open(this->_source.c_str());
+	if (inFileStream.fail()) {
+		std::cerr << "Error opening source file." <<std::endl;
+		throw(std::exception());
+	}
+
+	while (std::getline(inFileStream, line)) {
+		this->_raw.append(line);
+		this->_raw.append("\n");
+	}
+	inFileStream.close();
+}
+
+void	Response::_add_status_line() {
+	this->_raw.append("HTTP/1.1 ");
+	this->_raw.append(this->_status_code);
+	this->_raw.append(" ");
+	this->_raw.append(this->_status_string);
+	this->_raw.append("\n");
+}
+
+void	Response::_add_headers() {
+	for (std::map<std::string, std::string>::iterator it = this->_headers.begin();
+		it != this->_headers.end(); it++) {
+			this->_raw.append(it->first);
+			this->_raw.append(": ");
+			this->_raw.append(it->second);
+			this->_raw.append("\n");
+		}
+	this->_raw.append("\n");
+}
+
+void	Response::assemble() {
+
+	this->_add_status_line();
+	this->_add_headers();
+	this->_add_static_body();
+
+	// How is dynamic body added? if else statement and adding functions missing
+
+}

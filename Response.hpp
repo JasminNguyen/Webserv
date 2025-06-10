@@ -1,0 +1,31 @@
+#ifndef RESPONSE_HPP
+# define RESPONSE_HPP
+
+# include <iostream>
+# include <map>
+# include <fstream>
+
+class Response {
+
+	public:
+
+		Response();
+		~Response();
+
+		void	assemble();
+
+	private:
+
+		std::string	_raw;
+		std::string	_http_version;
+		std::string	_status_code;
+		std::string	_status_string;
+		std::map<std::string, std::string>	_headers;
+		std::string							_source;
+
+		void	_add_status_line();
+		void	_add_headers();
+		void	_add_static_body();
+};
+
+#endif
