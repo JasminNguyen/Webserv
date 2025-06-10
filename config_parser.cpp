@@ -8,12 +8,12 @@ std::ostream& operator<<(std::ostream& os, const serverConfig& config)
     return os;
 }
 
-int config_parser(std::string config_file, std::vector<serverConfig> serverConfigVector)
+int config_parser(std::string config_file, std::vector<serverConfig> &serverConfigVector)
 {
     bool inside_server = false;
     serverConfig currentServer;
 
-    // 1. TOKENIZE
+    // 1. TOKENIZE & PARSE
     
     std::ifstream file(config_file);//opening the file
    
@@ -50,23 +50,23 @@ int config_parser(std::string config_file, std::vector<serverConfig> serverConfi
                         
                 size_t colonPos = value.find(':');
                 currentServer.host = value.substr(0, colonPos);
-                std::cout << "host is: " << currentServer.host << std::endl;
+                //std::cout << "host is: " << currentServer.host << std::endl;
                 size_t portPos = colonPos + 1;
                 currentServer.port = std::atoi(value.substr(portPos).c_str());
-                std::cout << "port is: " << currentServer.port << std::endl;
+                //std::cout << "port is: " << currentServer.port << std::endl;
             }
             if(inside_server && token == "root")
             {
-                        std::string value;
-                        ss >> value;
+                std::string value;
+                ss >> value;
 
-                        currentServer.root = trim(value);
-                        std::cout << "root is: " << currentServer.root << std::endl;
+                currentServer.root = trim(value);
+                //std::cout << "root is: " << currentServer.root << std::endl;
             }         
 
         }
     }
-
+    std::cout << "Parsed " << serverConfigVector.size() << " server blocks.\n";
     return 0;
 }
 

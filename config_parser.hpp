@@ -24,6 +24,6 @@ struct serverConfig
 //extern std::vector<serverConfig> serverConfigVector; 
 
 std::ostream& operator<<(std::ostream& os, const serverConfig& config);
-int config_parser(std::string config_file, std::vector<serverConfig> serverConfigVector);
+int config_parser(std::string config_file, std::vector<serverConfig> &serverConfigVector);
 
 #endif
