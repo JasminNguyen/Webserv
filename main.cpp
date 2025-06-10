@@ -121,11 +121,13 @@ int main(int argc, char *argv[])
         return -1;
     }
     //start_miniserver();
-    if(config_parser(argv[1]) == -1)
+    std::vector<serverConfig> serverConfigVector;
+    if(config_parser(argv[1], serverConfigVector) == -1)
     {
         perror("config file");
         return -1;
     }
+    
     for(size_t i = 0; i < serverConfigVector.size(); i++)
     {
         std::cout << "element [" << i << "]: " << serverConfigVector[i] << std::endl;

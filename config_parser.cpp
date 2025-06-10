@@ -2,9 +2,14 @@
 #include "config_parser.hpp"
 
 
-int config_parser(std::string config_file)
+std::ostream& operator<<(std::ostream& os, const serverConfig& config)
 {
-    std::vector<serverConfig> serverConfigVector; 
+    os << "host=" << config.host << ", port=" << config.port << ", root=" << config.root;
+    return os;
+}
+
+int config_parser(std::string config_file, std::vector<serverConfig> serverConfigVector)
+{
     bool inside_server = false;
     serverConfig currentServer;
 
@@ -45,10 +50,10 @@ int config_parser(std::string config_file)
                         
                 size_t colonPos = value.find(':');
                 currentServer.host = value.substr(0, colonPos);
-                //std::cout << "host is: " << currentServer.host << std::endl;
+                std::cout << "host is: " << currentServer.host << std::endl;
                 size_t portPos = colonPos + 1;
                 currentServer.port = std::atoi(value.substr(portPos).c_str());
-                //std::cout << "port is: " << currentServer.port << std::endl;
+                std::cout << "port is: " << currentServer.port << std::endl;
             }
             if(inside_server && token == "root")
             {
@@ -56,7 +61,7 @@ int config_parser(std::string config_file)
                         ss >> value;
 
                         currentServer.root = trim(value);
-                        //std::cout << "root is: " << currentServer.root << std::endl;
+                        std::cout << "root is: " << currentServer.root << std::endl;
             }         
 
         }

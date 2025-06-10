@@ -6,7 +6,7 @@ CXXFLAGS    =   -Wall -Wextra -Werror -std=c++98
 
 all:        $(NAME)
 
-$(NAME):    $(OBJ) webserv.hpp 
+$(NAME):    $(OBJ) webserv.hpp config_parser.hpp
 	$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJ)
 
 clean:
