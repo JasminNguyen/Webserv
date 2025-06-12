@@ -5,42 +5,24 @@ Request::~Request() {}
 
 void	Request::_parse_start_line(std::string line) {
 
-	std::string::iterator it = line.begin();
+	std::istringstream ss(line);
 
-	while (it != line.end() && *it != ' ') {
-		this->_method += *it;
-		it++;
-	}
-	it++;
-
-	while (it != line.end() && *it != ' ') {
-		this->_target += *it;
-		it++;
-	}
-	it++;
-
-	while (it != line.end()) {
-		this->_http_version += *it;
-		it++;
-	}
+	ss >> this->_method;
+	ss >> this->_target;
+	ss >> this->_http_version;
 }
 
 void	Request::_parse_header_line(std::string line) {
 	std::string	key;
 	std::string	value;
 
-	std::string::iterator it = line.begin();
+	std::istringstream ss(line);
 
-	while (it != line.end() && *it != ' ') {
-		key += *it;
-		it++;
-	}
+	ss >> key;
 	key.erase(key.length() - 1);
-	it++;
-	while (it != line.end()) {
-		value += *it;
-		it++;
-	}
+
+	ss >> value;
+
 	this->_headers[key] = value;
 }
 
@@ -53,7 +35,7 @@ void	Request::_parse_header_line(std::string line) {
 	_parse_start_line(line);
 
 	while (std::getline(ss, line)) {
-		if (line.length() != 0) {
+		if (!line.empty()) {
 			_parse_header_line(line);
 		} else {
 			break;
