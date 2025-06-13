@@ -121,18 +121,41 @@ int main(int argc, char *argv[])
         return -1;
     }
     //start_miniserver();
-    std::vector<serverConfig> serverConfigVector;
-    if(config_parser(argv[1], serverConfigVector) == -1)
+   
+    configParser configParser;
+    std::vector<std::string> tokenVector;
+
+    tokenVector = configParser.tokenize(argv[1]);
+    for(size_t i = 0; i < tokenVector.size(); i++)
     {
-        perror("config file");
-        return -1;
+        std::cout << tokenVector[i] << std::endl;
     }
+    configParser.parse_server_block(tokenVector);
     
-    for(size_t i = 0; i < serverConfigVector.size(); i++)
+    for(size_t i = 0; i < configParser.serverConfigVector.size(); i++)
     {
-        std::cout << "element [" << i << "]: " << serverConfigVector[i] << std::endl;
-    } 
-    return 0;
+        std::cout << "element [" << i << "]: " << configParser.serverConfigVector[i] << std::endl;
+    }
+
+    
+
+    
+
+
+
+
+
+    // if(configParser::config_parser(argv[1], serverConfigVector) == -1)
+    // {
+    //     perror("config file");
+    //     return -1;
+    // }
+    
+    // for(size_t i = 0; i < serverConfigVector.size(); i++)
+    // {
+    //     std::cout << "element [" << i << "]: " << serverConfigVector[i] << std::endl;
+    // } 
+    // return 0;
 }
 
 

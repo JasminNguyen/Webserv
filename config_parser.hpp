@@ -6,24 +6,39 @@
 
 
 
-struct LocationConfig
+class configParser
 {
-    std::string path;
-    std::string root;
+    private:
+
+    public: 
+    struct LocationConfig
+    {
+        std::string path;
+        std::string root;
+        int autoindex; //1 = on, 0 = off
+        std::vector<std::string> allowed_methods;
+
+    };
+
+    struct ServerConfig
+    {
+        std::string host;
+        int port;
+        std::string root;
+
+        std::vector<LocationConfig> locations;
+    };
+    std::vector<ServerConfig> serverConfigVector;
+    std::vector<std::string> tokenize(std::string config_file);
+    int parse_server_block(std::vector<std::string> &tokens);
+    int parse_location_block(std::vector<std::string> &tokens, size_t &i, ServerConfig &currentServer);
+    static int config_parser(std::string config_file, std::vector<ServerConfig> &serverConfigVector);
+    static int parse_location(std::istringstream &ss);
+
 };
+std::ostream& operator<<(std::ostream& os, const configParser::ServerConfig& config);
 
-struct serverConfig
-{
-    std::string host;
-    int port;
-    std::string root;
 
-    std::vector<LocationConfig> locations;
-};
 
-//extern std::vector<serverConfig> serverConfigVector; 
-
-std::ostream& operator<<(std::ostream& os, const serverConfig& config);
-int config_parser(std::string config_file, std::vector<serverConfig> &serverConfigVector);
 
 #endif
