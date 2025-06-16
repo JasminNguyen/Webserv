@@ -132,6 +132,7 @@ int main(int argc, char *argv[])
     // }
     configParser.parse_server_block(tokenVector);
     
+
     int j = 1;
     for(size_t i = 0; i < configParser.serverConfigVector.size(); i++)
     {

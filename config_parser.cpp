@@ -23,123 +23,6 @@ std::ostream& operator<<(std::ostream& os, const configParser::ServerConfig& con
     return os;
 }
 
-// int configParser::parse_location(std::istringstream &ss)
-// {
-//         bool inside_location = true;
-//         std::string token;
-//         LocationConfig currentLocation;
-//         std::vector<LocationConfig> locations;
-
-//         while(ss >> token)
-//         {
-
-//                 currentLocation = LocationConfig();
-//                 currentLocation.path = token;
-//                 std::cout << "location path: " << currentLocation.path << std::endl;
-
-
-
-        
-//             if(inside_location && token == "}")
-//             {
-//                 inside_location = false;
-//                 locations.push_back(currentLocation);
-//                 continue;
-//             }
-//             if(inside_location && token == "root")
-//             {
-//                 ss >> token;
-//                 currentLocation.root = token;
-//                 std::cout << "location root: " << currentLocation.root<< std::endl;
-//             }
-//             if(inside_location && token == "autoindex")
-//             {
-//                 ss >> token;
-//                 currentLocation.autoindex = atoi(token.c_str());
-//                 std::cout << "location autoindex: " << currentLocation.autoindex << std::endl;
-//             }
-//             // if(inside_location && token == "allowed_methods")
-//             // {
-//             //     ss >> token;
-//             //     currentLocation.allowed_methods = token; // this could be more than one // implementation in progress
-//             // }
-
-
-//         }
-   
-//     return 0;
-    
-// }
-
-// int configParser::config_parser(std::string config_file, std::vector<ServerConfig> &serverConfigVector)
-// {
-//     bool inside_server = false;
-//     ServerConfig currentServer;
-
-//     // 1. TOKENIZE & PARSE
-    
-//     std::ifstream file(config_file);//opening the file
-   
-//     std::string line;
-//     while(getline(file, line)) //reading line by line from it
-//     {
-//         std::istringstream ss(line);
-//         std::string token;
-       
-//         while(ss >> token) //splitting the input into tokens where there is a space/newline
-//         {
-//             //parse into struct
-//             //std::cout << "Token: " << token << std::endl; 
-//             if(token == "server")
-//             {
-//                 inside_server = true;
-//                 currentServer = ServerConfig(); // calling the constructor
-//                 continue;
-//             }
-//             if (token == "}") 
-//             {
-//                 if (inside_server) 
-//                 {
-//                     serverConfigVector.push_back(currentServer);
-//                     inside_server = false;
-//                 }
-//                 continue;
-//             }
-            
-//             if(inside_server && token == "listen")
-//             {
-//                 std::string value;
-//                 ss >> value; // >> skips spaces/newlines, so we essentially move to next token 
-                        
-//                 size_t colonPos = value.find(':');
-//                 currentServer.host = value.substr(0, colonPos);
-//                 //std::cout << "host is: " << currentServer.host << std::endl;
-//                 size_t portPos = colonPos + 1;
-//                 currentServer.port = std::atoi(value.substr(portPos).c_str());
-//                 //std::cout << "port is: " << currentServer.port << std::endl;
-//             }
-//             if(inside_server && token == "root")
-//             {
-//                 std::string value;
-//                 ss >> value;
-
-//                 currentServer.root = trim(value);
-//                 //std::cout << "root is: " << currentServer.root << std::endl;
-//             }  
-//             if(inside_server && token == "location")
-//             {
-//                 std::cout << "here" << std::endl;
-//                 configParser::parse_location(ss);
-//                 continue;
-//             }   
-            
-//         }
-//     }
-//     std::cout << "Parsed " << serverConfigVector.size() << " server blocks.\n";
-//     return 0;
-// }
-
-
 int configParser::parse_location_block(std::vector<std::string> &tokens, size_t &i, ServerConfig &currentServer)
 {
     
@@ -150,7 +33,6 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
         currentLocation.path = tokens[i];
         if(tokens[i + 1] == "{")
         {
-             //std::cout << "location path is: " << currentLocation.path << std::endl;
             while(i < tokens.size() && tokens[i] != "}")
             {
                 if(tokens[i] == "root")
@@ -220,8 +102,7 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
     return 0;
 }
 
-//still acting weird -> does not detect server block after location as a server block but as a location block
-// it sees it as one element 
+
 std::vector<std::string> configParser::tokenize(std::string config_file)
 {
     std::vector<std::string> tokens;
