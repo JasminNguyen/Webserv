@@ -18,6 +18,7 @@ class configParser
         int autoindex; //1 = on, 0 = off
         std::vector<std::string> allowed_methods;
 
+        LocationConfig() : autoindex(0) {} 
     };
 
     struct ServerConfig

@@ -141,10 +141,10 @@ std::ostream& operator<<(std::ostream& os, const configParser::ServerConfig& con
 
 int configParser::parse_location_block(std::vector<std::string> &tokens, size_t &i, ServerConfig &currentServer)
 {
-    LocationConfig currentLocation;
-
+    
     while(i < tokens.size())
     {
+        LocationConfig currentLocation;
         i++;
         currentLocation.path = tokens[i];
         if(tokens[i + 1] == "{")
