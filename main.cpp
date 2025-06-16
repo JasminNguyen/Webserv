@@ -126,15 +126,18 @@ int main(int argc, char *argv[])
     std::vector<std::string> tokenVector;
 
     tokenVector = configParser.tokenize(argv[1]);
-    for(size_t i = 0; i < tokenVector.size(); i++)
-    {
-        std::cout << tokenVector[i] << std::endl;
-    }
+    // for(size_t i = 0; i < tokenVector.size(); i++)
+    // {
+    //     std::cout << tokenVector[i] << std::endl;
+    // }
     configParser.parse_server_block(tokenVector);
     
+    int j = 1;
     for(size_t i = 0; i < configParser.serverConfigVector.size(); i++)
     {
-        std::cout << "element [" << i << "]: " << configParser.serverConfigVector[i] << std::endl;
+
+        std::cout << "server block " << j << ": " << configParser.serverConfigVector[i] << std::endl;
+        j++;
     }
 
     

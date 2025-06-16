@@ -4,6 +4,7 @@
 
 std::ostream& operator<<(std::ostream& os, const configParser::ServerConfig& config)
 {
+    os << "\n" << " ===== BEGIN SERVER BLOCK ======" << "\n";
     os << "host=" << config.host << ", port=" << config.port << ", root=" << config.root;
     for(size_t i = 0; i < config.locations.size(); i++)
     {
@@ -17,8 +18,8 @@ std::ostream& operator<<(std::ostream& os, const configParser::ServerConfig& con
         // {
 
         // }
-        os << "\n";
     }
+    os << "\n" << " ===== END SERVER BLOCK ======" << "\n";
     return os;
 }
 
@@ -169,10 +170,12 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
                 
             }
             currentServer.locations.push_back(currentLocation);
-        }
+        } 
         i++;
-       
-        
+        if(tokens[i] == "}")
+        {
+            break;
+        }
     }
     
     return 0;
@@ -180,10 +183,10 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
 int configParser::parse_server_block(std::vector<std::string> &tokens)
 {
     size_t i = 0;
-    ServerConfig currentServer;
-
+    
     while(i < tokens.size())
     {
+        ServerConfig currentServer;
         if(tokens[i] == "server" && tokens[i + 1] == "{")
         {
             while(i < tokens.size() && tokens[i] != "}")
@@ -217,8 +220,8 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
     return 0;
 }
 
-//still acting weird -> why autoindex twice?
-
+//still acting weird -> does not detect server block after location as a server block but as a location block
+// it sees it as one element 
 std::vector<std::string> configParser::tokenize(std::string config_file)
 {
     std::vector<std::string> tokens;
