@@ -17,6 +17,9 @@ class Webserver {
 		void	parse_config();
 		void	populate();
 
+		std::vector<Connection>	&get_connections();
+		void	add_connection_to_poll(int fd);
+
 	private:
 
 		std::vector<configParser::ServerConfig>	_config;
@@ -25,9 +28,10 @@ class Webserver {
 		std::vector<pollfd>						_polls;
 
 		void	create_connections();
-		void	create_poll();
+		void	create_polls();
 		void	create_servers();
-		void	add_connection_to_poll(int fd);
+
+		Connection	&find_triggered_connection(pollfd &poll);
 
 };
 
