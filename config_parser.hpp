@@ -2,7 +2,7 @@
 #define CONFIG_PARSER_HPP
 
 #include "webserv.hpp"
-#include <ostream> // for std::ostream
+#include <ostream> 
 
 
 
@@ -16,6 +16,7 @@ class configParser
         std::string path;
         std::string root;
         int autoindex; //1 = on, 0 = off
+        int allowed_methods_present;
         std::vector<std::string> allowed_methods;
 
         LocationConfig() : autoindex(0) {} 
@@ -26,9 +27,13 @@ class configParser
         std::string host;
         int port;
         std::string root;
+        int client_max_body_size;
+
+        ServerConfig(): client_max_body_size(0){}
 
         std::vector<LocationConfig> locations;
     };
+
     std::vector<ServerConfig> serverConfigVector;
     std::vector<std::string> tokenize(std::string config_file);
     int parse_server_block(std::vector<std::string> &tokens);

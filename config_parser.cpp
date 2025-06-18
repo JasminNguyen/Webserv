@@ -1,11 +1,12 @@
 #include "webserv.hpp"
 #include "config_parser.hpp"
+#include "Exceptions.hpp"
 
 
 std::ostream& operator<<(std::ostream& os, const configParser::ServerConfig& config)
 {
     os << "\n" << " ===== BEGIN SERVER BLOCK ======" << "\n";
-    os << "host=" << config.host << ", port=" << config.port << ", root=" << config.root;
+    os << "host=" << config.host << ", port=" << config.port << ", root=" << config.root << ", client_max_body_size=" << config.client_max_body_size;
     for(size_t i = 0; i < config.locations.size(); i++)
     {
         os << "\n";
@@ -14,10 +15,15 @@ std::ostream& operator<<(std::ostream& os, const configParser::ServerConfig& con
         {
             os << ", l_autoindex[" << i << "]=" <<config.locations[i].autoindex;
         }
-        // if(config.locations[i].allowed_methods)
-        // {
-
-        // }
+        if(config.locations[i].allowed_methods_present)
+        {
+            size_t j = 0;
+            while(j < config.locations[i].allowed_methods[j].size())
+            {
+                os << ", l_allowed_methods[" << j << "]=" << config.locations[i].allowed_methods[j];
+                j++;
+            }
+        }
     }
     os << "\n" << " ===== END SERVER BLOCK ======" << "\n";
     return os;
@@ -44,6 +50,16 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
                 {
                     currentLocation.autoindex = atoi(tokens[++i].c_str());
                     i++;
+                }
+                else if(tokens[i] == "allowed_methods")
+                {
+                    currentLocation.allowed_methods_present = 1;
+                    while(tokens[i] != ";")
+                    {
+                        currentLocation.allowed_methods.push_back(tokens[++i]);
+                    }
+                    i++;
+                    
                 }
                 else
                 {
@@ -84,6 +100,11 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
                     currentServer.root = tokens[++i];
                     i++;
                 }
+                else if(tokens[i] == "client_max_body_size")
+                {
+                    currentServer.client_max_body_size = atoi(tokens[++i].c_str());
+                    i++;
+                }
                 else if(tokens[i] == "location")
                 {
                     parse_location_block(tokens, i, currentServer);
@@ -94,6 +115,10 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
                 }
             }
             serverConfigVector.push_back(currentServer);
+        }
+        else
+        {
+            throw Exceptions("Syntax error: bracket missing!\n");
         }
         i++;
        

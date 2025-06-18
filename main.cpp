@@ -122,44 +122,36 @@ int main(int argc, char *argv[])
     }
     //start_miniserver();
    
-    configParser configParser;
-    std::vector<std::string> tokenVector;
-
-    tokenVector = configParser.tokenize(argv[1]);
-    // for(size_t i = 0; i < tokenVector.size(); i++)
-    // {
-    //     std::cout << tokenVector[i] << std::endl;
-    // }
-    configParser.parse_server_block(tokenVector);
-    
-
-    int j = 1;
-    for(size_t i = 0; i < configParser.serverConfigVector.size(); i++)
+    try
     {
+        configParser configParser;
+        std::vector<std::string> tokenVector;
 
-        std::cout << "server block " << j << ": " << configParser.serverConfigVector[i] << std::endl;
-        j++;
+        tokenVector = configParser.tokenize(argv[1]);
+        // for(size_t i = 0; i < tokenVector.size(); i++)
+        // {
+        //     std::cout << tokenVector[i] << std::endl;
+        // }
+        configParser.parse_server_block(tokenVector);
+    
+
+        //PRINTING
+        int j = 1;
+        for(size_t i = 0; i < configParser.serverConfigVector.size(); i++)
+        {
+
+            std::cout << "server block " << j << ": " << configParser.serverConfigVector[i] << std::endl;
+            j++;
+        }
     }
-
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    
     
 
     
-
-
-
-
-
-    // if(configParser::config_parser(argv[1], serverConfigVector) == -1)
-    // {
-    //     perror("config file");
-    //     return -1;
-    // }
-    
-    // for(size_t i = 0; i < serverConfigVector.size(); i++)
-    // {
-    //     std::cout << "element [" << i << "]: " << serverConfigVector[i] << std::endl;
-    // } 
-    // return 0;
 }
 
 
@@ -179,4 +171,4 @@ int main(int argc, char *argv[])
 //     we don't want to wait so we use poll to test fd to test if a fd is ready for operation*/
 
 // differenciate listening socket and client socket
-//the first time it's about the listening socket which has nothing to read from 
+//the first time we deal with the listening socket which has nothing to read from 
