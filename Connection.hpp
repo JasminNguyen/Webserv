@@ -14,7 +14,8 @@ class Connection {
 		~Connection();
 
 		Socket	&get_socket();
-		void	handle_event(Webserver &webserver, pollfd &poll);
+		void	handle_socket_event(Webserver &webserver, pollfd &poll);
+		void	handle_source_event(Webserver &webserver, pollfd &poll);
 
 	private:
 
