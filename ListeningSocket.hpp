@@ -9,11 +9,7 @@ class ListeningSocket : public Socket {
 
 		ListeningSocket(int fd);
 
-		unsigned int	&get_fd();
-
 	private:
-
-		unsigned int	_fd;
 
 };
 

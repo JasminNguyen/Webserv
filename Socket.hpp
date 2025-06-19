@@ -10,7 +10,7 @@ class Socket {
 
 		int	get_fd();
 
-	private:
+	protected:
 
 		unsigned int	_fd;
 
