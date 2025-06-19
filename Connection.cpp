@@ -12,16 +12,16 @@ Socket	&Connection::get_socket() {
 	return this->_sock;
 }
 
-Request	&Connection::get_request() {
-	return *(this->_request);
+Request	*Connection::get_request() {
+	return this->_request;
 }
 
-Response	&Connection::get_response() {
-	return *(this->_response);
+Response	*Connection::get_response() {
+	return this->_response;
 }
 
-Source	&Connection::get_source() {
-	return *(this->_source);
+Source	*Connection::get_source() {
+	return this->_source;
 }
 
 /* detect type of triggered event and facilitate right action */
@@ -45,7 +45,7 @@ void	Connection::handle_source_event(Webserver &webserver, pollfd &poll) {
 	if (poll.revents & POLLIN) {
 		// read from source and pass into response instance
 		int n = read(src_fd, buf, 1024);
-		this->_response->get_raw().append(buf);
+		this->_response->get_body().append(buf);
 		if (n == 0) {
 			webserver.remove_poll(src_fd);
 			// close source fd

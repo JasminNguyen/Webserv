@@ -14,9 +14,9 @@ class Connection {
 		~Connection();
 
 		Socket		&get_socket();
-		Request		&get_request();
-		Response	&get_response();
-		Source		&get_source();
+		Request		*get_request();
+		Response	*get_response();
+		Source		*get_source();
 		void		handle_socket_event(Webserver &webserver, pollfd &poll);
 		void		handle_source_event(Webserver &webserver, pollfd &poll);
 
