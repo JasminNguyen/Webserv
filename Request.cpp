@@ -23,6 +23,10 @@ std::map<std::string, std::string>	&Request::get_headers() {
 	return this->_headers;
 }
 
+std::string	&Request::get_body() {
+	return this->_body;
+}
+
 void	Request::parse() {
 
 	std::string	line;

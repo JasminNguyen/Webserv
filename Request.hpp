@@ -17,6 +17,7 @@ class Request {
 		std::string							&get_target();
 		std::string							&get_http_version();
 		std::map<std::string, std::string>	&get_headers();
+		std::string							&get_body();
 
 		void								parse();
 
@@ -27,6 +28,7 @@ class Request {
 		std::string	_target; // file path
 		std::string	_http_version; // default HTTP/1.1
 		std::map<std::string, std::string>	_headers; // key value pairs
+		std::string	_body;
 
 
 		void	_parse_start_line(std::string line);
