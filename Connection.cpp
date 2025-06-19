@@ -12,6 +12,18 @@ Socket	&Connection::get_socket() {
 	return this->_sock;
 }
 
+Request	&Connection::get_request() {
+	return *(this->_request);
+}
+
+Response	&Connection::get_response() {
+	return *(this->_response);
+}
+
+Source	&Connection::get_source() {
+	return *(this->_source);
+}
+
 /* detect type of triggered event and facilitate right action */
 void	Connection::handle_socket_event(Webserver &webserv, pollfd &poll) {
 	if (poll.revents & POLLIN) {
@@ -28,12 +40,12 @@ void	Connection::handle_socket_event(Webserver &webserv, pollfd &poll) {
 /* read from connection source and append to connection response */
 void	Connection::handle_source_event(Webserver &webserver, pollfd &poll) {
 	char buf[1024];
-	int src_fd = this->_src->get_fd();
+	int src_fd = this->_source->get_fd();
 
 	if (poll.revents & POLLIN) {
 		// read from source and pass into response instance
 		int n = read(src_fd, buf, 1024);
-		this->_res->get_raw().append(buf);
+		this->_response->get_raw().append(buf);
 		if (n == 0) {
 			webserver.remove_poll(src_fd);
 			// close source fd
@@ -58,7 +70,7 @@ void	Connection::accept_request(Webserver &webserv) {
 /* read and process request to produce response */
 void	Connection::handle_request() {
 	// read into this->_req->_raw
-	this->_req->parse();
+	this->_request->parse();
 	// create response
 		// static file or cgi
 	//Response	*new_res = new Response();
@@ -67,8 +79,8 @@ void	Connection::handle_request() {
 
 /* if response != NULL, assemble response and send to client */
 void	Connection::send_response() {
-	if (this->_res) {
-		this->_res->assemble();
+	if (this->_response) {
+		this->_response->assemble();
 		// send response
 	}
 }

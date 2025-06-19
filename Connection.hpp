@@ -13,18 +13,21 @@ class Connection {
 		Connection(Socket &sock);
 		~Connection();
 
-		Socket	&get_socket();
-		void	handle_socket_event(Webserver &webserver, pollfd &poll);
-		void	handle_source_event(Webserver &webserver, pollfd &poll);
+		Socket		&get_socket();
+		Request		&get_request();
+		Response	&get_response();
+		Source		&get_source();
+		void		handle_socket_event(Webserver &webserver, pollfd &poll);
+		void		handle_source_event(Webserver &webserver, pollfd &poll);
 
 	private:
 
 		Connection();
 
 		Socket		&_sock;
-		Request		*_req;
-		Response	*_res;
-		Source		*_src;
+		Request		*_request;
+		Response	*_response;
+		Source		*_source;
 
 		void	accept_request(Webserver &webserv);
 		void	handle_request();
