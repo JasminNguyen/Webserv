@@ -1,34 +1,47 @@
-// #ifndef WEBSERVER_HPP
-// # define WEBSERVER_HPP
+#ifndef WEBSERVER_HPP
+# define WEBSERVER_HPP
 
-// # include "webserv.hpp"
-// # include "config_parser.hpp"
-// # include "Connection.hpp"
-// # include "Server.hpp"
+# include "webserv.hpp"
+# include "config_parser.hpp"
+# include "Connection.hpp"
+# include "Server.hpp"
 
-// class Webserver {
+class Webserver {
 
-// 	public:
+	public:
 
-// 		Webserver();
-// 		~Webserver();
+		Webserver();
+		~Webserver();
 
-// 		void	launch();
-// 		void	parse_config();
-// 		void	populate();
+		std::vector<configParser::ServerConfig>	&get_config();
+		std::vector<Server>						&get_servers();
+		std::vector<Connection>					&get_connections();
+		std::vector<pollfd>						&get_polls();
+		std::map<Source &, Connection &>		&get_source_map();
+
+		void	launch();
+		void	parse_config();
+		void	populate();
+
+
+		void	add_connection_to_poll(int fd);
+		void	remove_poll(int fd);
 
 	private:
 
-// 		std::vector<configParser::ServerConfig>	_config;
-// 		std::vector<Server>						_servers;
-// 		std::vector<Connection>					_connections;
-// 		std::vector<pollfd>						_polls;
+		std::vector<configParser::ServerConfig>	_config;
+		std::vector<Server>						_servers;
+		std::vector<Connection>					_connections;
+		std::vector<pollfd>						_polls;
+		std::map<Source &, Connection &>		_source_map;
 
 		void	create_connections();
-		void	create_poll();
+		void	create_polls();
 		void	create_servers();
-		void	add_connection_to_poll(int fd);
 
-// };
+		Connection	*find_triggered_socket(pollfd &poll);
+		Connection	*find_triggered_source(pollfd &poll);
 
-// #endif
+};
+
+#endif
