@@ -3,30 +3,27 @@
 Request::Request(std::string raw) : _raw(raw) {}
 Request::~Request() {}
 
-void	Request::_parse_start_line(std::string line) {
-
-	std::istringstream ss(line);
-
-	ss >> this->_method;
-	ss >> this->_target;
-	ss >> this->_http_version;
+std::string	&Request::get_raw() {
+	return this->_raw;
 }
 
-void	Request::_parse_header_line(std::string line) {
-	std::string	key;
-	std::string	value;
-
-	std::istringstream ss(line);
-
-	ss >> key;
-	key.erase(key.length() - 1);
-
-	ss >> value;
-
-	this->_headers[key] = value;
+std::string	&Request::get_method() {
+	return this->_method;
 }
 
- void	Request::parse() {
+std::string	&Request::get_target() {
+	return this->_target;
+}
+
+std::string	&Request::get_http_version() {
+	return this->_http_version;
+}
+
+std::map<std::string, std::string>	&Request::get_headers() {
+	return this->_headers;
+}
+
+void	Request::parse() {
 
 	std::string	line;
 	std::istringstream ss(this->_raw);
@@ -55,4 +52,29 @@ void	Request::_parse_header_line(std::string line) {
 	}
 	std::getline(ss, line);
 	std::cout << "TEST: " << line << std::endl; */
- }
+}
+
+void	Request::_parse_start_line(std::string line) {
+
+	std::istringstream ss(line);
+
+	ss >> this->_method;
+	ss >> this->_target;
+	ss >> this->_http_version;
+}
+
+void	Request::_parse_header_line(std::string line) {
+	std::string	key;
+	std::string	value;
+
+	std::istringstream ss(line);
+
+	ss >> key;
+	key.erase(key.length() - 1);
+
+	ss >> value;
+
+	this->_headers[key] = value;
+}
+
+
