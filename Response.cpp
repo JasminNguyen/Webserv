@@ -3,6 +3,40 @@
 Response::Response() {}
 Response::~Response() {}
 
+std::string	&Response::get_raw() {
+	return this->_raw;
+}
+
+std::string	&Response::get_http_version() {
+	return this->_http_version;
+}
+
+std::string	&Response::get_status_code() {
+	return this->_status_code;
+}
+
+std::string	&Response::get_status_string() {
+	return this->_status_string;
+}
+
+std::map<std::string, std::string>	&Response::get_headers() {
+	return this->_headers;
+}
+
+std::string	&Response::get_source() {
+	return this->_source;
+}
+
+void	Response::assemble() {
+
+	this->_add_status_line();
+	this->_add_headers();
+	this->_add_static_body();
+
+	// How is dynamic body added? if else statement and adding functions missing
+
+}
+
 void	Response::_add_static_body() {
 	std::string		line;
 	std::ifstream	inFileStream;
@@ -37,14 +71,4 @@ void	Response::_add_headers() {
 			this->_raw.append("\n");
 		}
 	this->_raw.append("\n");
-}
-
-void	Response::assemble() {
-
-	this->_add_status_line();
-	this->_add_headers();
-	this->_add_static_body();
-
-	// How is dynamic body added? if else statement and adding functions missing
-
 }

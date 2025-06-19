@@ -12,6 +12,13 @@ class Response {
 		Response();
 		~Response();
 
+		std::string							&get_raw();
+		std::string							&get_http_version();
+		std::string							&get_status_code();
+		std::string							&get_status_string();
+		std::map<std::string, std::string>	&get_headers();
+		std::string							&get_source();
+
 		void	assemble();
 
 	private:
