@@ -27,6 +27,10 @@ std::string	&Response::get_source() {
 	return this->_source;
 }
 
+std::string	&Response::get_body() {
+	return this->_body;
+}
+
 void	Response::assemble() {
 
 	this->_add_status_line();
