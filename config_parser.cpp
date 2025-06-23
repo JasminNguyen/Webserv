@@ -69,6 +69,10 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
             }
             currentServer.locations.push_back(currentLocation);
         } 
+        else
+        {
+            throw Exceptions("Syntax error: opening bracket missing!\n");
+        }
         i++;
         if(tokens[i] == "}")
         {
@@ -118,12 +122,11 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
         }
         else
         {
-            throw Exceptions("Syntax error: bracket missing!\n");
+            throw Exceptions("Syntax error: opening bracket missing!\n");
         }
         i++;
        
     }
-   
     return 0;
 }
 

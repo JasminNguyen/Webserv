@@ -1,0 +1,112 @@
+
+///assuming that we have a .cgi/.py/.php extention
+
+#include "CGI.hpp"
+
+std::string CGI::construct_script_path(Request& request, configParser::ServerConfig & server_block)
+{
+    std::string target_uri = request.get_target(); //  something like this "/cgi-bin/foo.py"
+    std::string script_path;
+    bool match_found = false;
+
+    // Start looking for the second slash *after* the first one
+    std::size_t first = target_uri.find('/');
+    std::size_t second = target_uri.find('/', first + 1);
+
+    std::string target_to_match = target_uri.substr(0, second); // make "/cgi-bin" out of it
+    std::string target_to_append = target_uri.substr(second, target_uri.size()); // make "/foo.py" out of it -> to append later
+
+    //iterating through all of the locations structs in the Locations vector to find the right path (that is "/cgi-bin" in this case)
+    for(size_t i = 0; i < server_block.locations.size(); i++) 
+    {
+        if(server_block.locations[i].path == target_to_match) //found a match in one of the location blocks
+        {
+            script_path = server_block.locations[i].root + target_to_append; // result: "/Users/jasminn/webserv/cgi-scripts/foo.py"
+            match_found = true;
+            break;
+        }
+    }
+    if(match_found == false)
+    {
+        std::cerr << "No match found in the location blocks" << std::endl;
+    }
+
+    return script_path;
+
+}
+
+int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block)
+{
+    //creating 2 pipes (one that the cgi reads and one that the cgi writes to)
+    /*
+    sooo we have 4 filedescriptors:
+   
+    in_pipe[1]	write end	your server writes the request body here
+    in_pipe[0]	read end	the CGI script reads it from stdin
+    out_pipe[1]	write end	the CGI writes its output to this
+    out_pipe[0]	read end	your server reads the CGI output here*/
+    int in_pipe[2];
+    int out_pipe[2];
+    if(pipe(in_pipe)== -1 || pipe(out_pipe) == -1)
+    {
+        std::cerr << "couldn't pipe" << std::endl;
+        return -1;
+    }
+    pid_t pid = fork();
+    if(pid == -1)
+    {
+        std::cerr << "couldn't fork" << std::endl;
+        return -1;
+    }
+    if(pid == 0) //child
+    {
+        //redirecting the pipes ends used by cgi
+        dup2(in_pipe[0], STDIN_FILENO); //cgi reads from here
+        dup2(out_pipe[1], STDOUT_FILENO); //cgi writes here
+
+        //closing unused pipe ends (those that used by server)
+        close(in_pipe[1]);
+        close(out_pipe[0]);
+
+        //I have to close the other two as well to avoid leaking fds (I can do that since I duplicated them and they replace stdin/out)
+        close(in_pipe[0]);
+        close(out_pipe[1]);
+
+        //execute
+        // set up script_path, argv + envp, then exec
+        //execve("/usr/bin/php-cgi", argv, envp);
+        std::string script_path = CGI::construct_script_path(request, server_block);
+        char *argv[] = construct_argv();
+        char *envp[] = construct_envp();
+        //script_path I have to construct myself out of the info in the request header and the locations
+        //argv: 
+        // usually something like:
+        // char* argv[] = {
+        //     const_cast<char*>(script_path.c_str()),  // argv[0] = script name
+        //     NULL
+        // };
+        //envp: 
+        //will be a first be a vector of strings (to make it resizable) and then we convert it to an array as well
+
+        perror("execve failed"); // only runs if exec fails
+        exit(1);
+    }
+    else // parent (our beautiful server)
+    {
+    
+
+    // closing unused pipe ends
+    close(in_pipe[0]);  // we don't read from stdin pipe
+    close(out_pipe[1]); // we don't write to CGI output pipe
+
+    // Now:
+    // write to stdin_pipe[1] → CGI stdin (cgi instructions)
+    // read from out_pipe[0] ← CGI output (result of what cgi made)
+
+
+    //question: where exactly do I add out_pipe[0] to your pollfd vector (to wait for CGI output) and Connections vector?
+    }
+}
+
+
+//we will probably call this run_cgi() from a Connections instance  -> handle_request() or possible from handle_source_event();
