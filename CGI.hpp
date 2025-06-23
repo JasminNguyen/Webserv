@@ -14,7 +14,8 @@ class CGI
 
     int run_cgi(Request & request, configParser::ServerConfig & server_block);
     std::string  construct_script_path(Request & request, configParser::ServerConfig & server_block);
-
+    char **construct_argv(const char* &script_path);
+    char **construct_envp();
 
 };
 

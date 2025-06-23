@@ -3,6 +3,22 @@
 
 #include "CGI.hpp"
 
+
+char ** CGI::construct_envp()
+{
+    
+}
+char **CGI::construct_argv(const char* &script_path)
+{
+    char *converted_script_path = strdup(script_path); //don't forget to free strdup allocates mem
+    char **argv = new char*[3];
+    argv[0] = (char*)"/usr/bin/python3"; // argv[0] = interpreter (I assume that we just use a python script to run cgi)
+    argv[1] = converted_script_path;  // argv[1] = script_path that I constructed earlier
+    argv[2] = NULL;   // end of array
+
+    return argv;
+}
+
 std::string CGI::construct_script_path(Request& request, configParser::ServerConfig & server_block)
 {
     std::string target_uri = request.get_target(); //  something like this "/cgi-bin/foo.py"
@@ -75,8 +91,9 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block)
         //execute
         // set up script_path, argv + envp, then exec
         //execve("/usr/bin/php-cgi", argv, envp);
-        std::string script_path = CGI::construct_script_path(request, server_block);
-        char *argv[] = construct_argv();
+        const char* script_path = CGI::construct_script_path(request, server_block).c_str();
+        char **argv = construct_argv(script_path);
+       
         char *envp[] = construct_envp();
         //script_path I have to construct myself out of the info in the request header and the locations
         //argv: 
@@ -87,7 +104,8 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block)
         // };
         //envp: 
         //will be a first be a vector of strings (to make it resizable) and then we convert it to an array as well
-
+        execve(script_path, argv, envp);
+        
         perror("execve failed"); // only runs if exec fails
         exit(1);
     }
@@ -110,3 +128,6 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block)
 
 
 //we will probably call this run_cgi() from a Connections instance  -> handle_request() or possible from handle_source_event();
+//don't forget to freeeee
+//free(argv[1]);
+// delete argv;
