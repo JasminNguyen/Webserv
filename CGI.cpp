@@ -1,14 +1,87 @@
 
-///assuming that we have a .cgi/.py/.php extention
+///assuming that we have a .py extention
 
 #include "CGI.hpp"
 
 
-char ** CGI::construct_envp()
+char ** CGI::construct_envp(Request& request, configParser::ServerConfig & server_block)
 {
+    //which envp to pass?
+    //probably depends on the method as well
+    /*REQUEST_METHOD	Tells the script whether it's GET, POST, etc.
+    SCRIPT_NAME	The path of the script relative to the root
+    QUERY_STRING	Needed for GET requests to get input data
+    CONTENT_LENGTH	Required for POST; tells how many bytes to read
+    CONTENT_TYPE	Describes the body data type (e.g. application/x-www-form-urlencoded)
+    SERVER_PROTOCOL	Usually HTTP/1.1 — CGI uses this for responses
+    SERVER_NAME	The host part of the URL
+    SERVER_PORT	The port the server is listening on
+    //REMOTE_ADDR	IP address of the client
+    GATEWAY_INTERFACE	Always "CGI/1.1"*/
+
+    std::vector<std::string> env;
+    env.push_back("REQUEST_METHOD=" + request.get_method());
+    // "/cgi-script/foo.py" or "/cgi-bin/foo.py?name=Jasmin" in a GET request (query string present)
+    if(request.get_target().find("?")!= std::string::npos)//if ? found in uri -> "/cgi-bin/foo.py?name=Jasmin"
+    {
+        int pos_question_mark = request.get_target().find("?");
+        std::string script_name = request.get_target().substr(0, pos_question_mark);
+        env.push_back("SCRIPT_NAME=" + script_name);
+    }
+    else // -> "/cgi-bin/foo.py"
+    {
+        env.push_back("SCRIPT_NAME=" + request.get_target()); 
+    }
     
+    if(request.get_method() == "GET")
+    {
+        int pos_question_mark = request.get_target().find("?");
+        std::string query_string = request.get_target().substr(pos_question_mark + 1);
+        env.push_back("QUERY_STRING=" + query_string);
+    }
+    //find content lenght in header map
+    std::map<std::string, std::string>& headers = request.get_headers();
+
+    for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); it++)
+    {
+        if (it->first == "Content-Length")
+        {
+            env.push_back("CONTENT_LENGTH=" + it->second);
+        }
+    }
+    //find content type in header map
+    for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); it++)
+    {
+        if (it->first == "Content-Type")
+        {
+            env.push_back("CONTENT_TYPE=" + it->second);
+        }
+    }
+    env.push_back("SERVER_PROTOCOL=HTTP/1.1");
+   //find content type in header map
+    for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); it++)
+    {
+        if (it->first == "Host")
+        {
+            env.push_back("SERVER_NAME=" + it->second);
+        }
+    }
+    env.push_back("SERVER_PORT=" + server_block.port);
+    env.push_back("GATEWAY_INTERFACE=CGI/1.1");
+    
+    int array_length = env.size();
+    char **envp = new char*[array_length];
+    for(int i = 0; i < array_length; i++)
+    {
+        envp[i] = strdup(env[i].c_str());
+    }
+
+    return envp;
 }
-char **CGI::construct_argv(const char* &script_path)
+
+
+
+char** CGI::construct_argv(const char* &script_path)
 {
     char *converted_script_path = strdup(script_path); //don't forget to free strdup allocates mem
     char **argv = new char*[3];
@@ -93,8 +166,8 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block)
         //execve("/usr/bin/php-cgi", argv, envp);
         const char* script_path = CGI::construct_script_path(request, server_block).c_str();
         char **argv = construct_argv(script_path);
-       
-        char *envp[] = construct_envp();
+        char **envp = construct_envp(request, server_block);
+        execve(script_path, argv, envp);
         //script_path I have to construct myself out of the info in the request header and the locations
         //argv: 
         // usually something like:
@@ -131,3 +204,4 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block)
 //don't forget to freeeee
 //free(argv[1]);
 // delete argv;
+//what if in construct_script_path we already have a ? inside the uri
