@@ -124,7 +124,7 @@ std::string CGI::construct_script_path(Request& request, configParser::ServerCon
 
 }
 
-int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block)
+int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, Webserver & webserver, Connection *conn)
 {
     //creating 2 pipes (one that the cgi reads and one that the cgi writes to)
     /*
@@ -176,7 +176,7 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block)
         //     NULL
         // };
         //envp: 
-        //will be a first be a vector of strings (to make it resizable) and then we convert it to an array as well
+        //will be first be a vector of strings (to make it resizable) and then we convert it to an array as well
         execve(script_path, argv, envp);
         
         perror("execve failed"); // only runs if exec fails
@@ -190,12 +190,22 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block)
     close(in_pipe[0]);  // we don't read from stdin pipe
     close(out_pipe[1]); // we don't write to CGI output pipe
 
-    // Now:
-    // write to stdin_pipe[1] → CGI stdin (cgi instructions)
+    // write to in_pipe[1] → CGI stdin (cgi instructions)
     // read from out_pipe[0] ← CGI output (result of what cgi made)
 
+    write(in_pipe[1], request.get_body().c_str(), request.get_body().size()); //writing request to CGI via pipe
+    close(in_pipe[1]); //close that pipe
 
-    //question: where exactly do I add out_pipe[0] to your pollfd vector (to wait for CGI output) and Connections vector?
+    webserver.add_connection_to_poll(out_pipe[0]); //add out_pipe end to pollfd vector
+   // webserver.find_triggered_source(webserver.get_polls());
+
+   //put out_pipe in Source-Connection map so that we know which CGI response belongs to which client
+    webserver.get_source_map()[out_pipe[0]] = conn;
+    if()
+    {
+        
+    }
+
     }
 }
 
@@ -204,4 +214,3 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block)
 //don't forget to freeeee
 //free(argv[1]);
 // delete argv;
-//what if in construct_script_path we already have a ? inside the uri

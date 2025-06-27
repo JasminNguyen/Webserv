@@ -5,6 +5,7 @@
 # include "Response.hpp"
 # include "Socket.hpp"
 # include "Source.hpp"
+# include "CGI.hpp"
 
 class Connection {
 

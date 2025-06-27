@@ -63,6 +63,7 @@
     "random": "cpp",
     "type_traits": "cpp",
     "utility": "cpp",
-    "deque": "cpp"
+    "deque": "cpp",
+    "map": "cpp"
   }
 }

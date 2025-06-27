@@ -4,15 +4,16 @@
 #include "webserv.hpp"
 #include "Request.hpp"
 #include "config_parser.hpp"
+#include "Webserver.hpp"
 
 class CGI
 {
     private:
-
+    
 
     public:
 
-    int run_cgi(Request & request, configParser::ServerConfig & server_block);
+    int run_cgi(Request & request, configParser::ServerConfig & server_block, Webserver & webserver);
     std::string  construct_script_path(Request & request, configParser::ServerConfig & server_block);
     char **construct_argv(const char* &script_path);
     char **construct_envp(Request& request, configParser::ServerConfig & server_block);
