@@ -167,7 +167,7 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, We
         const char* script_path = CGI::construct_script_path(request, server_block).c_str();
         char **argv = construct_argv(script_path);
         char **envp = construct_envp(request, server_block);
-        execve(script_path, argv, envp);
+        
         //script_path I have to construct myself out of the info in the request header and the locations
         //argv: 
         // usually something like:
@@ -201,10 +201,6 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, We
 
    //put out_pipe in Source-Connection map so that we know which CGI response belongs to which client
     webserver.get_source_map()[out_pipe[0]] = conn;
-    if()
-    {
-        
-    }
 
     }
 }

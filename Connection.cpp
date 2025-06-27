@@ -51,9 +51,11 @@ void	Connection::handle_source_event(Webserver &webserver, pollfd &poll) {
 			// close source fd
 			close(src_fd);
 		}
-	} else { // if POLLOUT
+	} /*else { // if POLLOUT
 		// chunk writing to source fd (cgi)
-	}
+		//note from jassy: so turns out I was wrong: the cgi pipe will give me POLLIN, not POLLOUT (since it's the out_pipe[0]) 
+		-> so we can actually use the same mechanism that we use for the static website (no extra else statement needed)
+	}*/
 
 }
 
