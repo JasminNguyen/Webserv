@@ -101,9 +101,14 @@ std::string CGI::construct_script_path(Request& request, configParser::ServerCon
     // Start looking for the second slash *after* the first one
     std::size_t first = target_uri.find('/');
     std::size_t second = target_uri.find('/', first + 1);
-
+    std::size_t pos_question_mark = target_uri.find('?');
+    std::string target_to_append;
     std::string target_to_match = target_uri.substr(0, second); // make "/cgi-bin" out of it
-    std::string target_to_append = target_uri.substr(second, target_uri.size()); // make "/foo.py" out of it -> to append later
+    if(pos_question_mark != std::string::npos)
+    {
+        target_to_append = target_uri.substr(second, pos_question_mark);
+    }
+    target_to_append = target_uri.substr(second, target_uri.size()); // make "/foo.py" out of it -> to append later
 
     //iterating through all of the locations structs in the Locations vector to find the right path (that is "/cgi-bin" in this case)
     for(size_t i = 0; i < server_block.locations.size(); i++) 
