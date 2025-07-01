@@ -81,7 +81,7 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
 
 
 
-char** CGI::construct_argv(const char* &script_path)
+char** CGI::construct_argv(std::string &script_path)
 {
     char *converted_script_path = strdup(script_path); //don't forget to free strdup allocates mem
     char **argv = new char*[3];
@@ -94,7 +94,7 @@ char** CGI::construct_argv(const char* &script_path)
 
 std::string CGI::construct_script_path(Request& request, configParser::ServerConfig & server_block)
 {
-    std::string target_uri = request.get_target(); //  something like this "/cgi-bin/foo.py"
+    std::string target_uri = request.get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"
     std::string script_path;
     bool match_found = false;
 
@@ -106,7 +106,7 @@ std::string CGI::construct_script_path(Request& request, configParser::ServerCon
     std::string target_to_match = target_uri.substr(0, second); // make "/cgi-bin" out of it
     if(pos_question_mark != std::string::npos)
     {
-        target_to_append = target_uri.substr(second, pos_question_mark);
+        target_to_append = target_uri.substr(second, pos_question_mark);// "/foo.py"
     }
     target_to_append = target_uri.substr(second, target_uri.size()); // make "/foo.py" out of it -> to append later
 
@@ -122,7 +122,7 @@ std::string CGI::construct_script_path(Request& request, configParser::ServerCon
     }
     if(match_found == false)
     {
-        std::cerr << "No match found in the location blocks" << std::endl;
+        std::cerr << "No match found in the location blocks" << std::endl; //throw error!!!!!
     }
 
     return script_path;

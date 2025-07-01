@@ -76,7 +76,7 @@ void	Connection::handle_request() {
 	// create response
 		// static file or cgi 
 		/*in here we would probably call the cgi -> to be approved by Marc!
-		cgi.run_cgi(request, server_block, webserver, *this);
+		cgi.run_cgi(request, server_block, webserver, this);
 		*/
 	//Response	*new_res = new Response();
 	//this->_res = new_res;
