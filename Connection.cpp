@@ -50,12 +50,15 @@ void	Connection::handle_source_event(Webserver &webserver, pollfd &poll) {
 			webserver.remove_poll(src_fd);
 			// close source fd
 			close(src_fd);
+			// generate response parts
+			// this->_response->assemble();
 		}
 	} /*else { // if POLLOUT
 		// chunk writing to source fd (cgi)
-		//note from jassy: so turns out I was wrong: the cgi pipe will give me POLLIN, not POLLOUT (since it's the out_pipe[0]) 
+		//note from jassy: so turns out I was wrong: the cgi pipe will give me POLLIN, not POLLOUT (since it's the out_pipe[0])
 		-> so we can actually use the same mechanism that we use for the static website (no extra else statement needed)
 	}*/
+
 
 }
 
@@ -74,7 +77,7 @@ void	Connection::handle_request() {
 	// read into this->_req->_raw
 	this->_request->parse();
 	// create response
-		// static file or cgi 
+		// static file or cgi
 		/*in here we would probably call the cgi -> to be approved by Marc!
 		cgi.run_cgi(request, server_block, webserver, this);
 		*/
@@ -84,8 +87,7 @@ void	Connection::handle_request() {
 
 /* if response != NULL, assemble response and send to client */
 void	Connection::send_response() {
-	if (this->_response) {
-		this->_response->assemble();
-		// send response
+	if (this->_response->_raw) {
+		// send response - chunked writing based on buffer size
 	}
 }

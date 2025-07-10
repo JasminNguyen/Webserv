@@ -42,7 +42,7 @@ void	Response::assemble() {
 }
 
 void	Response::_add_static_body() {
-	std::string		line;
+	/* std::string		line;
 	std::ifstream	inFileStream;
 
 	inFileStream.open(this->_source.c_str());
@@ -56,6 +56,8 @@ void	Response::_add_static_body() {
 		this->_raw.append("\n");
 	}
 	inFileStream.close();
+	*/
+	this->_raw.append(this->_body);
 }
 
 void	Response::_add_status_line() {
