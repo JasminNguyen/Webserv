@@ -77,10 +77,16 @@ void	Connection::handle_request() {
 	// read into this->_req->_raw
 	this->_request->parse();
 	// create response
+	std::string target = this->_request->get_target();
+	if (target.substr(target.size() - 3, target.size() -1).compare(".py") == 0) {
 		// static file or cgi
 		/*in here we would probably call the cgi -> to be approved by Marc!
 		cgi.run_cgi(request, server_block, webserver, this);
 		*/
+	} else {
+		// open static file and add fd to poll vector
+	}
+
 	//Response	*new_res = new Response();
 	//this->_res = new_res;
 }
