@@ -11,9 +11,9 @@ std::vector<configParser::ServerConfig>	&Webserver::get_config() {
 	return this->_config;
 }
 
-std::vector<Server>	&Webserver::get_servers() {
+/* std::vector<Server>	&Webserver::get_servers() {
 	return this->_servers;
-}
+} */
 
 std::vector<Connection>	&Webserver::get_connections() {
 	return this->_connections;
@@ -28,13 +28,13 @@ std::map<Source &, Connection &>	&Webserver::get_source_map() {
 }
 
 void	Webserver::populate() {
-	create_servers();
+	//create_servers();
 	create_connections();
 	create_polls();
 }
 
-/*  */
-void	Webserver::create_servers() {}
+/* void	Webserver::create_servers() {} */
+
 
 /*  */
 void	Webserver::create_connections() {}
@@ -75,7 +75,7 @@ Connection	*Webserver::find_triggered_source(pollfd &poll) {
 }
 
 /* remove pollfd instance from pollfd vector */
-void	Webserver::remove_poll(int fd) {
+void	Webserver::remove_from_poll(int fd) {
 	for (std::vector<pollfd>::iterator it = this->_polls.begin(); it != this->_polls.end(); it++) {
 		if (it->fd == fd) {
 			this->_polls.erase(it);

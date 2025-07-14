@@ -47,7 +47,7 @@ void	Connection::handle_source_event(Webserver &webserver, pollfd &poll) {
 		int n = read(src_fd, buf, 1024);
 		this->_response->get_body().append(buf);
 		if (n == 0) {
-			webserver.remove_poll(src_fd);
+			webserver.remove_from_poll(src_fd);
 			// close source fd
 			close(src_fd);
 			// generate response parts
