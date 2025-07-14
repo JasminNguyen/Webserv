@@ -29,7 +29,7 @@ std::map<Source &, Connection &>	&Webserver::get_source_map() {
 
 void	Webserver::populate() {
 	//create_servers();
-	create_connections();
+	populate_socket_connections();
 	create_polls();
 }
 
@@ -37,7 +37,15 @@ void	Webserver::populate() {
 
 
 /*  */
-void	Webserver::create_connections() {}
+void	Webserver::populate_socket_connections() {
+	for (std::vector<configParser::ServerConfig>::iterator it = this->_config.begin();
+	it != this->_config.end(); it++) {
+		ListeningSocket l_sock = ListeningSocket(it->port, it->host);
+		Connection con = Connection(l_sock);
+		this->_connections.push_back(con);
+		this->add_connection_to_poll(l_sock.get_fd());
+	}
+}
 
 /* iterate over Connection vector to create a pollfd instance per
 connection and add it to pollfd vector */

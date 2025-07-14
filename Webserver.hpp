@@ -37,7 +37,7 @@ class Webserver {
 		std::vector<pollfd>						_polls;
 		std::map<Source &, Connection &>		_source_map;
 
-		void	create_connections();
+		void	populate_socket_connections();
 		void	create_polls();
 		//void	create_servers();
 
