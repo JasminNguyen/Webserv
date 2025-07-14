@@ -7,7 +7,7 @@ class ListeningSocket : public Socket {
 
 	public:
 
-		ListeningSocket(int fd);
+		ListeningSocket::ListeningSocket(int port, std::string host);
 
 	private:
 
