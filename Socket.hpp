@@ -12,7 +12,7 @@ class Socket {
 
 	protected:
 
-		unsigned int	_fd;
+		int	_fd;
 
 };
 
