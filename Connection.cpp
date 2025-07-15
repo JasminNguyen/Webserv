@@ -137,3 +137,26 @@ void	Connection::send_response() {
 		// send response - chunked writing based on buffer size
 	}
 }
+
+
+void	Connection::match_location_block()
+{
+	// 1. match IP:port to listen (in the config file)
+	 /* -> Marcs vector of ServerConfigs in the Connection gives me the respective server blocks in question
+	 I just need to consider those for the next steps */
+
+	// 2. find the host header of the request
+	std::map<std::string, std::string> &headers = _request->get_headers();
+	std::string host_header;
+	for(std::map<std::string, std::string>::iterator it =  headers.begin(); it != headers.end(); it++)
+	{
+		if(it->first == "host" || it->first == "Host")
+		{
+			host_header = it->second;
+		}
+	}
+	// 3. match the host header to server block that are the Connection
+	std::vector<configParser::ServerConfig> _servers_in_question = 
+	for(std::vector<configParser::ServerConfig>::iterator it = )
+
+}

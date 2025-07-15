@@ -27,8 +27,8 @@ class Connection {
 		void		handle_socket_event(Webserver &webserver, pollfd &poll);
 		void		handle_source_event(Webserver &webserver, pollfd &poll);
 		void		add_server(std::vector<configParser::ServerConfig>::iterator it);
-		int			no_duplicates(std::vector<configParser::ServerConfig>::iterator it);
-
+		void		match_location_block(); //finds the right server block or location to serve our static file or cgi
+		
 	private:
 
 		Connection();
