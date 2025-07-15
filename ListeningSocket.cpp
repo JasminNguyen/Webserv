@@ -7,9 +7,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define BACKLOG 10
-
-
 ListeningSocket::ListeningSocket(int port, std::string host) : Socket(-1) {
     struct sockaddr_in  addr;
     addr.sin_family = AF_INET;
@@ -27,7 +24,7 @@ ListeningSocket::ListeningSocket(int port, std::string host) : Socket(-1) {
         if (connection < 0) {
             std::cerr << "bind() faild" << std::endl;
         } else {
-            int listening = listen(this->_fd, BACKLOG);
+            int listening = listen(this->_fd, SOMAXCONN);
             if (listening < 0) {
                 std::cerr << "listen() faild" << std::endl;
             }
