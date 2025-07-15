@@ -18,6 +18,7 @@ class Connection {
 		Connection &operator=(const Connection &ref);
 
 		Socket		&get_socket();
+		std::vector<configParser::ServerConfig>	&getServers();
 		Request		*get_request();
 		Response	*get_response();
 		Source		*get_source();
@@ -28,7 +29,7 @@ class Connection {
 		void		handle_source_event(Webserver &webserver, pollfd &poll);
 		void		add_server(std::vector<configParser::ServerConfig>::iterator it);
 		void		match_location_block(); //finds the right server block or location to serve our static file or cgi
-		
+
 	private:
 
 		Connection();

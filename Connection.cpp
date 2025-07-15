@@ -22,6 +22,10 @@ Socket	&Connection::get_socket() {
 	return this->_sock;
 }
 
+std::vector<configParser::ServerConfig>	&Connection::getServers() {
+			return this->_servers;
+		}
+
 Request	*Connection::get_request() {
 	return this->_request;
 }
@@ -182,9 +186,9 @@ void	Connection::match_location_block()
 	{
 		std::vector<configParser::LocationConfig> locations_in_question = matched_server->locations;
 		std::string target_uri = _request->get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"
-		
+
 		bool match_found = false;
-	
+
 		//remove query string
 		std::size_t pos_question_mark = target_uri.find('?');
 		std::string clean_uri;
@@ -196,16 +200,16 @@ void	Connection::match_location_block()
 		{
 			clean_uri = target_uri;
 		}
-		
+
 		//going through locations of the respective server block
 		size_t best_len = 0;
 		configParser::LocationConfig* best_location = NULL;
-		
-		for(std::vector<configParser::LocationConfig>::iterator it = locations_in_question.begin(); it != locations_in_question.end(); it++) 
+
+		for(std::vector<configParser::LocationConfig>::iterator it = locations_in_question.begin(); it != locations_in_question.end(); it++)
 		{
 			// Try to find best location match (longest prefix match)
 			std::string location_path = it->path;
-			
+
 			if(clean_uri.compare(0, location_path.length(), location_path) == 0) // Does the URI start with the location path?
 			{
 				if (location_path.length() > best_len)
@@ -229,7 +233,7 @@ void	Connection::match_location_block()
 			std::cerr << "No match found in the location blocks" << std::endl;
 			// throw an error here or return empty string
 		}
-			
+
 	}
 
 
