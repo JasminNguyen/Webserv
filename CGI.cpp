@@ -92,6 +92,7 @@ char** CGI::construct_argv(std::string &script_path)
     return argv;
 }
 
+/*will probably remove this and replace it with the match_location_block()*/
 std::string CGI::construct_script_path(Request& request, configParser::ServerConfig & server_block)
 {
     std::string target_uri = request.get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"

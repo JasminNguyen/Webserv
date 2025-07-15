@@ -26,6 +26,7 @@ class configParser
     {
         std::string host;
         int port;
+        std::string server_name;
         std::string root;
         int client_max_body_size;
 

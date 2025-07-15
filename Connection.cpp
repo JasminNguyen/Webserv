@@ -90,6 +90,8 @@ void	Connection::accept_request(Webserver &webserv) {
 	int new_fd = accept(this->get_socket().get_fd(), 0, 0); // Are 0s okay or should we provide info?
 	Socket *new_sock = new Socket(new_fd);
 	Connection *new_con = new Connection(*new_sock);
+	// Create new Source object for this connection
+    new_con->_source = new Source(); //added by Jasmin -> to be reviewed by Marc
 	webserv.get_connections().push_back(*new_con);
 	webserv.add_connection_to_poll(new_fd);
 }
@@ -153,10 +155,82 @@ void	Connection::match_location_block()
 		if(it->first == "host" || it->first == "Host")
 		{
 			host_header = it->second;
+			break;
 		}
 	}
 	// 3. match the host header to server block that are the Connection
-	std::vector<configParser::ServerConfig> _servers_in_question = 
-	for(std::vector<configParser::ServerConfig>::iterator it = )
+	std::vector<configParser::ServerConfig> servers_in_question = _request.get_servers();
+	configParser::ServerConfig* matched_server = NULL;
+	for(std::vector<configParser::ServerConfig>::iterator it = servers_in_question.begin(); it != servers_in_question.end(); it++)
+	{
+		if(it->server_name == host_header) //matches!
+		{
+			matched_server = &(*it);
+			break;
+		}
+	}
+	//no match found - none found or no server_name set -> we fall back onto the first server in servers_in_question
+	if(matched_server == NULL && !servers_in_question.empty()) //make sure we have the servers_in_question are not empty (we have at least one server in there bevor accessing the first)
+	{
+		matched_server = &servers_in_question[0];
+	}
+
+	// 4. find the right location (if there are any) and match it with the request target
+	/*has to be the longest matching location*/
+	std::string script_path;
+	if(!matched_server->locations.empty()) //check if there are locations
+	{
+		std::vector<configParser::LocationConfig> locations_in_question = matched_server->locations;
+		std::string target_uri = _request->get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"
+		
+		bool match_found = false;
+	
+		//remove query string
+		std::size_t pos_question_mark = target_uri.find('?');
+		std::string clean_uri;
+		if(pos_question_mark != std::string::npos)
+		{
+			clean_uri = target_uri.substr(0, pos_question_mark);
+		}
+		else
+		{
+			clean_uri = target_uri;
+		}
+		
+		//going through locations of the respective server block
+		size_t best_len = 0;
+		configParser::LocationConfig* best_location = NULL;
+		
+		for(std::vector<configParser::LocationConfig>::iterator it = locations_in_question.begin(); it != locations_in_question.end(); it++) 
+		{
+			// Try to find best location match (longest prefix match)
+			std::string location_path = it->path;
+			
+			if(clean_uri.compare(0, location_path.length(), location_path) == 0) // Does the URI start with the location path?
+			{
+				if (location_path.length() > best_len)
+				{
+					best_len = location_path.length();
+					best_location = &(*it);
+				}
+			}
+		}
+
+		if (best_location)
+		{
+			// Append the rest of the URI (after the location path) to the root
+			std::string relative_path = clean_uri.substr(best_location->path.length());
+			script_path = best_location->root + relative_path;
+			_source->set_path(script_path); //setting the constructed script path in Source
+			match_found = true;
+		}
+		else
+		{
+			std::cerr << "No match found in the location blocks" << std::endl;
+			// throw an error here or return empty string
+		}
+			
+	}
+
 
 }

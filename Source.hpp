@@ -8,6 +8,7 @@ class Source {
     public:
 
         int &get_fd();
+        void set_path(std::string path);
 
     private:
 

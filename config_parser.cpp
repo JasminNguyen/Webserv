@@ -6,7 +6,7 @@
 std::ostream& operator<<(std::ostream& os, const configParser::ServerConfig& config)
 {
     os << "\n" << " ===== BEGIN SERVER BLOCK ======" << "\n";
-    os << "host=" << config.host << ", port=" << config.port << ", root=" << config.root << ", client_max_body_size=" << config.client_max_body_size;
+    os << "host=" << config.host << ", port=" << config.port <<  ", server_name=" << config.server_name <<  ", root=" << config.root << ", client_max_body_size=" << config.client_max_body_size;
     for(size_t i = 0; i < config.locations.size(); i++)
     {
         os << "\n";
@@ -97,6 +97,11 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
                 {
                     currentServer.host = tokens[++i];
                     currentServer.port = atoi(tokens[i + 2].c_str());
+                    i++;
+                }
+                else if(tokens[i] == "server_name")
+                {
+                    currentServer.server_name = tokens[++i];
                     i++;
                 }
                 else if(tokens[i] == "root")
