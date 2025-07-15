@@ -8,6 +8,16 @@
 Connection::Connection(Socket &sock) : _sock(sock) {}
 Connection::~Connection() {}
 
+Connection &Connection::operator=(const Connection &ref) {
+	if (this != &ref) {
+		this->_sock = ref._sock;
+		this->_request = ref._request;
+		this->_response = ref._response;
+		this->_source = ref._source;
+	}
+	return *this;
+}
+
 Socket	&Connection::get_socket() {
 	return this->_sock;
 }
@@ -24,13 +34,21 @@ Source	*Connection::get_source() {
 	return this->_source;
 }
 
+int	&Connection::get_port() {
+	return this->_port;
+}
+
+std::string	&Connection::get_host() {
+	return this->_host;
+}
+
 /* detect type of triggered event and facilitate right action */
 void	Connection::handle_socket_event(Webserver &webserv, pollfd &poll) {
 	if (poll.revents & POLLIN) {
 		if (typeid(*this) == typeid(ListeningSocket)) {
 			this->accept_request(webserv);
 		} else {
-			this->handle_request();
+			this->handle_request(webserv);
 		}
 	} else {
 		this->send_response();
@@ -62,6 +80,10 @@ void	Connection::handle_source_event(Webserver &webserver, pollfd &poll) {
 
 }
 
+void	Connection::add_server(std::vector<configParser::ServerConfig>::iterator it) {
+	this->_servers.push_back(*it);
+}
+
 /* accept incoming request on listening socket and
 create client socket to establish conncetion */
 void	Connection::accept_request(Webserver &webserv) {
@@ -73,7 +95,7 @@ void	Connection::accept_request(Webserver &webserv) {
 }
 
 /* read and process request to produce response */
-void	Connection::handle_request() {
+void	Connection::handle_request(Webserver &webserv) {
 	// read into this->_req->_raw
 	this->_request->parse();
 	// create response
@@ -85,6 +107,24 @@ void	Connection::handle_request() {
 		*/
 	} else {
 		// open static file and add fd to poll vector
+			// check if file exists
+			// check if file is readable
+			// different error pages if file not readable or doesn't exist?
+			if (access(this->_request->get_target().c_str(), R_OK) == -1) {
+				std::cerr << "File doesn't exist or isn't readable." << std::endl;
+			} else {
+				// open file
+				int fd = open(this->_request->get_target().c_str(), O_RDONLY);
+				if (fd == -1) {
+					std::cerr << "Opening the file " << this->_request->get_target().c_str() << " failed." << std::endl;
+				}
+				// add fd and connection to map
+				std::map<Source &, Connection &> map = webserv.get_source_map();
+				map[*(this->_source)] = *this;
+				// add poll instance to poll vector
+				webserv.add_connection_to_poll(fd);
+			}
+
 	}
 
 	//Response	*new_res = new Response();
@@ -93,7 +133,7 @@ void	Connection::handle_request() {
 
 /* if response != NULL, assemble response and send to client */
 void	Connection::send_response() {
-	if (this->_response->_raw) {
+	if (this->_response->get_raw() != "") {
 		// send response - chunked writing based on buffer size
 	}
 }
