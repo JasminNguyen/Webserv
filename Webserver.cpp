@@ -11,10 +11,6 @@ std::vector<configParser::ServerConfig>	&Webserver::get_config() {
 	return this->_config;
 }
 
-/* std::vector<Server>	&Webserver::get_servers() {
-	return this->_servers;
-} */
-
 std::vector<Connection>	&Webserver::get_connections() {
 	return this->_connections;
 }
@@ -28,23 +24,37 @@ std::map<Source &, Connection &>	&Webserver::get_source_map() {
 }
 
 void	Webserver::populate() {
-	//create_servers();
 	populate_socket_connections();
 	create_polls();
 }
 
-/* void	Webserver::create_servers() {} */
-
-
 /*  */
+// check if there already is a socket for that port and host
 void	Webserver::populate_socket_connections() {
 	for (std::vector<configParser::ServerConfig>::iterator it = this->_config.begin();
 	it != this->_config.end(); it++) {
-		ListeningSocket l_sock = ListeningSocket(it->port, it->host);
-		Connection con = Connection(l_sock);
-		this->_connections.push_back(con);
-		this->add_connection_to_poll(l_sock.get_fd());
+		std::vector<Connection>::iterator con = this->_connection_exists(it);
+		if (con == this->_connections.end()) {
+			//create new socket, etc.
+			ListeningSocket l_sock = ListeningSocket(it->port, it->host);
+			Connection new_con = Connection(l_sock);
+			new_con.add_server(it);
+			this->_connections.push_back(new_con);
+			this->add_connection_to_poll(l_sock.get_fd());
+		} else {
+			//add to existing connection
+			con->add_server(it);
+		}
 	}
+}
+
+std::vector<Connection>::iterator Webserver::_connection_exists(std::vector<configParser::ServerConfig>::iterator config) {
+	for (std::vector<Connection>::iterator it = this->_connections.begin(); it != this->_connections.end(); it++) {
+		if (config->host == it->get_host() && config->port == it->get_port()) {
+			return it;
+		}
+	}
+	return this->_connections.end();
 }
 
 /* iterate over Connection vector to create a pollfd instance per
