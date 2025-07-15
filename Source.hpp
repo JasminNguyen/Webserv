@@ -1,6 +1,7 @@
 
 #ifndef SOURCE_HPP
 #define SOURCE_HPP
+#include "webserv.hpp"
 
 class Source {
 
@@ -11,6 +12,7 @@ class Source {
     private:
 
         int _fd;
+        std::string _path;
 
 };
 
