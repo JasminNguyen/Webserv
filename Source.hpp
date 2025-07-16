@@ -9,6 +9,7 @@ class Source {
 
         int &get_fd();
         void set_path(std::string path);
+        std::string get_path();
 
     private:
 

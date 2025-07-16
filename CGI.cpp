@@ -81,7 +81,7 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
 
 
 
-char** CGI::construct_argv(std::string &script_path)
+char** CGI::construct_argv(const char* &script_path)
 {
     char *converted_script_path = strdup(script_path); //don't forget to free strdup allocates mem
     char **argv = new char*[3];
@@ -93,42 +93,42 @@ char** CGI::construct_argv(std::string &script_path)
 }
 
 /*will probably remove this and replace it with the match_location_block()*/
-std::string CGI::construct_script_path(Request& request, configParser::ServerConfig & server_block)
-{
-    std::string target_uri = request.get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"
-    std::string script_path;
-    bool match_found = false;
+// std::string CGI::construct_script_path(Request& request, configParser::ServerConfig & server_block)
+// {
+//     std::string target_uri = request.get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"
+//     std::string script_path;
+//     bool match_found = false;
 
-    // Start looking for the second slash *after* the first one
-    std::size_t first = target_uri.find('/');
-    std::size_t second = target_uri.find('/', first + 1);
-    std::size_t pos_question_mark = target_uri.find('?');
-    std::string target_to_append;
-    std::string target_to_match = target_uri.substr(0, second); // make "/cgi-bin" out of it
-    if(pos_question_mark != std::string::npos)
-    {
-        target_to_append = target_uri.substr(second, pos_question_mark);// "/foo.py"
-    }
-    target_to_append = target_uri.substr(second, target_uri.size()); // make "/foo.py" out of it -> to append later
+//     // Start looking for the second slash *after* the first one
+//     std::size_t first = target_uri.find('/');
+//     std::size_t second = target_uri.find('/', first + 1);
+//     std::size_t pos_question_mark = target_uri.find('?');
+//     std::string target_to_append;
+//     std::string target_to_match = target_uri.substr(0, second); // make "/cgi-bin" out of it
+//     if(pos_question_mark != std::string::npos)
+//     {
+//         target_to_append = target_uri.substr(second, pos_question_mark);// "/foo.py"
+//     }
+//     target_to_append = target_uri.substr(second, target_uri.size()); // make "/foo.py" out of it -> to append later
 
-    //iterating through all of the locations structs in the Locations vector to find the right path (that is "/cgi-bin" in this case)
-    for(size_t i = 0; i < server_block.locations.size(); i++) 
-    {
-        if(server_block.locations[i].path == target_to_match) //found a match in one of the location blocks
-        {
-            script_path = server_block.locations[i].root + target_to_append; // result: "/Users/jasminn/webserv/cgi-scripts/foo.py"
-            match_found = true;
-            break;
-        }
-    }
-    if(match_found == false)
-    {
-        std::cerr << "No match found in the location blocks" << std::endl; //throw error!!!!!
-    }
+//     //iterating through all of the locations structs in the Locations vector to find the right path (that is "/cgi-bin" in this case)
+//     for(size_t i = 0; i < server_block.locations.size(); i++) 
+//     {
+//         if(server_block.locations[i].path == target_to_match) //found a match in one of the location blocks
+//         {
+//             script_path = server_block.locations[i].root + target_to_append; // result: "/Users/jasminn/webserv/cgi-scripts/foo.py"
+//             match_found = true;
+//             break;
+//         }
+//     }
+//     if(match_found == false)
+//     {
+//         std::cerr << "No match found in the location blocks" << std::endl; //throw error!!!!!
+//     }
 
-    return script_path;
+//     return script_path;
 
-}
+// }
 
 int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, Webserver & webserver, Connection *conn)
 {
@@ -170,7 +170,8 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, We
         //execute
         // set up script_path, argv + envp, then exec
         //execve("/usr/bin/php-cgi", argv, envp);
-        const char* script_path = CGI::construct_script_path(request, server_block).c_str();
+        //const char* script_path = CGI::construct_script_path(request, server_block).c_str();
+        const char *script_path = conn->get_source()->get_path().c_str();
         char **argv = construct_argv(script_path);
         char **envp = construct_envp(request, server_block);
         

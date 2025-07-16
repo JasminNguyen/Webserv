@@ -163,7 +163,7 @@ void	Connection::match_location_block()
 		}
 	}
 	// 3. match the host header to server block that are the Connection
-	std::vector<configParser::ServerConfig> servers_in_question = _request.get_servers();
+	std::vector<configParser::ServerConfig> servers_in_question = this->getServers();
 	configParser::ServerConfig* matched_server = NULL;
 	for(std::vector<configParser::ServerConfig>::iterator it = servers_in_question.begin(); it != servers_in_question.end(); it++)
 	{
@@ -223,7 +223,7 @@ void	Connection::match_location_block()
 		if (best_location)
 		{
 			// Append the rest of the URI (after the location path) to the root
-			std::string relative_path = clean_uri.substr(best_location->path.length());
+			std::string relative_path = clean_uri.substr(best_location->path.length()); //start wher best_location ends until the end of the clean_uri and make a substring out of it 
 			script_path = best_location->root + relative_path;
 			_source->set_path(script_path); //setting the constructed script path in Source
 			match_found = true;
@@ -235,6 +235,4 @@ void	Connection::match_location_block()
 		}
 
 	}
-
-
 }
