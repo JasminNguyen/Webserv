@@ -1,13 +1,15 @@
-#ifndef STATIC_SOURCE
-# define STATIC_SOURCE
+#ifndef STATIC_SOURCE_HPP
+# define STATIC_SOURCE_HPP
 
 class StaticSource {
 
     public:
 
+        int &get_fd_out();
+
     private:
 
-        unsigned int    _fd_out;
-}
+        int    _fd_out;
+};
 
 #endif
