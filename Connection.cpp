@@ -173,7 +173,7 @@ void	Connection::match_location_block()
 			break;
 		}
 	}
-	//no match found - none found or no server_name set -> we fall back onto the first server in servers_in_question
+	//no match found - no matching server block or no server_name set -> we fall back onto the first server in servers_in_question
 	if(matched_server == NULL && !servers_in_question.empty()) //make sure we have the servers_in_question are not empty (we have at least one server in there bevor accessing the first)
 	{
 		matched_server = &servers_in_question[0];
@@ -231,7 +231,9 @@ void	Connection::match_location_block()
 		else
 		{
 			std::cerr << "No match found in the location blocks" << std::endl;
-			// throw an error here or return empty string
+			// throw an error here, something like this?
+			// 	_response->set_status_code("404");
+			// _response->set_body("Not Found");
 		}
 
 	}

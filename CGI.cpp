@@ -207,7 +207,11 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, We
    // webserver.find_triggered_source(webserver.get_polls());
 
    //put out_pipe in Source-Connection map so that we know which CGI response belongs to which client
-    webserver.get_source_map()[out_pipe[0]] = conn;
+
+    conn->get_source()->set_fd(out_pipe[0]);
+    webserver.get_source_map()[conn->get_source()] = conn;
+    //should we maybe use pointers in the map instead of references here?
+    
 
     }
 }
