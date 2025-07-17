@@ -151,7 +151,7 @@ void	Connection::send_response() {
 }
 
 
-void	Connection::match_location_block()
+configParser::ServerConfig& Connection::match_location_block()
 {
 	// 1. match IP:port to listen (in the config file)
 	 /* -> Marcs vector of ServerConfigs in the Connection gives me the respective server blocks in question
@@ -243,4 +243,5 @@ void	Connection::match_location_block()
 		}
 
 	}
+	return *(matched_server);
 }
