@@ -145,11 +145,20 @@ void	Connection::handle_request(Webserver &webserv) {
 
 /* if response != NULL, assemble response and send to client */
 void	Connection::send_response() {
+	int fd = this->get_socket().get_fd();
+	std::string response = this->_response->get_raw();
 	if (this->_response->get_raw() != "") {
 		// send response - chunked writing based on buffer size
+		int n = write(fd, response.c_str(), response.size());
+		if (n < 0) {
+			throw(std::exception());
+		} else {
+			if (n == response.size()) {
+				std::cout << "Response delivered. YAY!!!" << std::endl;
+			}
+		}
 	}
 }
-
 
 configParser::ServerConfig& Connection::match_location_block()
 {
@@ -229,7 +238,7 @@ configParser::ServerConfig& Connection::match_location_block()
 		if (best_location)
 		{
 			// Append the rest of the URI (after the location path) to the root
-			std::string relative_path = clean_uri.substr(best_location->path.length()); //start wher best_location ends until the end of the clean_uri and make a substring out of it 
+			std::string relative_path = clean_uri.substr(best_location->path.length()); //start wher best_location ends until the end of the clean_uri and make a substring out of it
 			script_path = best_location->root + relative_path;
 			_source->set_path(script_path); //setting the constructed script path in Source
 			match_found = true;
