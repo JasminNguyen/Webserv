@@ -5,12 +5,13 @@
 #include "Request.hpp"
 #include "config_parser.hpp"
 #include "Webserver.hpp"
+#include "Connection.hpp"
 
 
 class CGI
 {
     private:
-    
+
 
     public:
 

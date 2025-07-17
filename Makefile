@@ -1,5 +1,8 @@
 NAME        = webserv
-SRC         = main.cpp config_parser.cpp helper_functions.cpp Exceptions.cpp
+SRC         = main2.cpp config_parser.cpp helper_functions.cpp Exceptions.cpp \
+				CGI.cpp CGISource.cpp Connection.cpp ListeningSocket.cpp \
+				Request.cpp Response.cpp Socket.cpp StaticSource.cpp \
+				Webserver.cpp
 OBJ         = $(SRC:.cpp=.o)
 DEP 		= $(SRC:.cpp=.d) # Dependency files for headers generated from source files (replace .cpp with .d)
 DEPS 		= $(patsubst %.d, .deps/%.d, $(DEP)) # Adjust DEP filenames to be inside the .deps directory
@@ -19,7 +22,7 @@ $(NAME): $(OBJ) # Link object files into the final executable
 	$(CXX) $(CXXFLAGS) -MMD -MF .deps/$*.d -c $< -o $@
 
 clean: # Remove object files and dependency directory
-	rm -f $(OBJ) 
+	rm -f $(OBJ)
 	rm -rf .deps
 
 fclean: clean

@@ -1,15 +1,13 @@
 #include "webserv.hpp"
 #include "Webserver.hpp"
 
-#define DEFAULT_CONFIG "./config/default"
-
 int main(int argc, char **argv) {
     char *config_file;
 
     if (argc == 2) {
         config_file = argv[1];
     } else if (argc == 1) {
-        config_file = DEFAULT_CONFIG;
+        config_file = "./config/default.conf";
     } else {
         std::cerr << "Error: Invalid number of arguments!" << std::endl;
         return 1;
