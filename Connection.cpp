@@ -4,6 +4,7 @@
 #include "ListeningSocket.hpp"
 #include "Webserver.hpp"
 #include <iostream>
+#include "CGI.hpp"
 
 Connection::Connection(Socket &sock) : _sock(sock) {}
 Connection::~Connection() {}
@@ -69,11 +70,15 @@ void	Connection::handle_source_event(Webserver &webserver, pollfd &poll) {
 		int n = read(src_fd, buf, 1024);
 		this->_response->get_body().append(buf);
 		if (n == 0) {
+			// generate response parts
+			this->_response->get_http_version() = "HTTP /1.1";
+			this->_response->get_status_code() = 200;
+			this->_response->get_status_string() = "OK";
+			this->_response->get_headers() = this->_request->get_headers();
 			webserver.remove_from_poll(src_fd);
 			// close source fd
 			close(src_fd);
-			// generate response parts
-			// this->_response->assemble();
+			this->_response->assemble();
 		}
 	} /*else { // if POLLOUT
 		// chunk writing to source fd (cgi)
@@ -111,18 +116,23 @@ void	Connection::handle_request(Webserver &webserv) {
 		/*in here we would probably call the cgi -> to be approved by Marc!
 		cgi.run_cgi(request, server_block, webserver, this);
 		*/
+		configParser::ServerConfig server = this->match_location_block(); //please return the right server block
+		CGI::run_cgi(*(this->_request), server, webserv, this);
+
 	} else {
 		// open static file and add fd to poll vector
 			// check if file exists
 			// check if file is readable
 			// different error pages if file not readable or doesn't exist?
-			if (access(this->_request->get_target().c_str(), R_OK) == -1) {
+			this->match_location_block();
+			std::string file_path = this->_source->get_path();
+			if (access(file_path.c_str() , R_OK) == -1) {
 				std::cerr << "File doesn't exist or isn't readable." << std::endl;
 			} else {
 				// open file
-				int fd = open(this->_request->get_target().c_str(), O_RDONLY);
+				int fd = open(file_path.c_str(), O_RDONLY);
 				if (fd == -1) {
-					std::cerr << "Opening the file " << this->_request->get_target().c_str() << " failed." << std::endl;
+					std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
 				}
 				// add fd and connection to map
 				std::map<Source &, Connection &> map = webserv.get_source_map();
@@ -130,11 +140,7 @@ void	Connection::handle_request(Webserver &webserv) {
 				// add poll instance to poll vector
 				webserv.add_connection_to_poll(fd);
 			}
-
 	}
-
-	//Response	*new_res = new Response();
-	//this->_res = new_res;
 }
 
 /* if response != NULL, assemble response and send to client */
@@ -231,9 +237,9 @@ void	Connection::match_location_block()
 		else
 		{
 			std::cerr << "No match found in the location blocks" << std::endl;
-			// throw an error here, something like this?
 			// 	_response->set_status_code("404");
 			// _response->set_body("Not Found");
+			throw std::runtime_error("No match found in location blocks");
 		}
 
 	}

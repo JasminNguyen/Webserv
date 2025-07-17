@@ -40,7 +40,6 @@ void	Webserver::populate_socket_connections() {
 			Connection new_con = Connection(l_sock);
 			new_con.add_server(it);
 			this->_connections.push_back(new_con);
-			this->add_connection_to_poll(l_sock.get_fd());
 		} else {
 			//add to existing connection
 			con->add_server(it);

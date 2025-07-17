@@ -29,7 +29,7 @@ class Response {
 		std::string	_status_code;
 		std::string	_status_string;
 		std::map<std::string, std::string>	_headers;
-		std::string							_source;
+		// std::string							_source;
 		std::string							_body;
 
 		void	_add_status_line();
