@@ -123,6 +123,11 @@ void	Webserver::launch() {
 	}
 }
 
-void	Webserver::parse_config() {
-	//configParser.parse_server_block(tokenVector)
+void	Webserver::parse_config(char *config_file) {
+	configParser configParser;
+	std::vector<std::string> tokenVector;
+
+	tokenVector = configParser.tokenize(config_file);
+	configParser.parse_server_block(tokenVector);
+	this->_config = configParser.serverConfigVector;
 }

@@ -20,7 +20,7 @@ class Webserver {
 
 
 		void	launch();
-		void	parse_config();
+		void	parse_config(char *config_file);
 		void	populate();
 
 
