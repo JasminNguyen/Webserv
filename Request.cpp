@@ -1,5 +1,6 @@
 #include "Request.hpp"
 
+Request::Request() {}
 Request::Request(std::string raw) : _raw(raw) {}
 Request::~Request() {}
 
@@ -80,5 +81,3 @@ void	Request::_parse_header_line(std::string line) {
 
 	this->_headers[key] = value;
 }
-
-

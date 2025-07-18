@@ -9,8 +9,12 @@
 #include "Request.hpp"
 #include "Socket.hpp"
 
-Connection::Connection() {}
-Connection::Connection(Socket *sock) : _sock(sock) {}
+Connection::Connection() {
+	std::cout << "Hi from Connection default constructor" << std::endl;
+}
+Connection::Connection(Socket *sock) : _sock(sock) {
+	//this->_response->get_raw() = "";
+}
 Connection::~Connection() {}
 
 Connection &Connection::operator=(const Connection &ref) {
@@ -53,13 +57,19 @@ std::string	&Connection::get_host() {
 
 /* detect type of triggered event and facilitate right action */
 void	Connection::handle_socket_event(Webserver &webserv, pollfd &poll) {
+	//std::cout << "revents: " << (poll.revents == POLLOUT ? "YES" : "NO") << std::endl;
+	//std::cout << "poll fd: " << poll.fd << std::endl;
 	if (poll.revents & POLLIN) {
-		if (typeid(*this) == typeid(ListeningSocket)) {
+		std::cout << "HERE WE GO with POLLIN!" << std::endl;
+		if (this->get_socket()->get_type() == "Listening Socket") {
+			std::cout << "HERE WE GO with Listening Socket!" << std::endl;
 			this->accept_request(webserv);
 		} else {
+			std::cout << "HERE WE GO with client socket!" << std::endl;
 			this->handle_request(webserv);
 		}
 	} else {
+		std::cout << "HERE WE GO with POLLOUT!" << std::endl;
 		this->send_response();
 	}
 }
@@ -101,17 +111,31 @@ void	Connection::add_server(std::vector<configParser::ServerConfig>::iterator it
 create client socket to establish conncetion */
 void	Connection::accept_request(Webserver &webserv) {
 	int new_fd = accept(this->get_socket()->get_fd(), 0, 0); // Are 0s okay or should we provide info?
+	std::cout << "Accept request" << std::endl;
+	if (new_fd < 0) {
+		std::cout << "We have a problem." << std::endl;
+	}
 	Socket *new_sock = new Socket(new_fd);
 	Connection *new_con = new Connection(new_sock);
 	// Create new Source object for this connection
     new_con->_source = new Source(); //added by Jasmin -> to be reviewed by Marc
+	new_con->_request = new Request();
+	new_con->_response = new Response();
 	webserv.get_connections().push_back(*new_con);
 	webserv.add_connection_to_poll(new_fd);
 }
 
 /* read and process request to produce response */
 void	Connection::handle_request(Webserver &webserv) {
+	char buf[1024];
 	// read into this->_req->_raw
+	std::cout << "handle request on client socket" << std::endl;
+	size_t n = read(this->_sock->get_fd(), buf, sizeof(buf));
+	if (n < 0) {
+		throw(std::exception());
+	} else { // difference between n == 0 and n > 0 ???
+		this->_request->get_raw().append(buf);
+	}
 	this->_request->parse();
 	// create response
 	std::string target = this->_request->get_target();
@@ -151,14 +175,16 @@ void	Connection::handle_request(Webserver &webserv) {
 void	Connection::send_response() {
 	int fd = this->get_socket()->get_fd();
 	std::string response = this->_response->get_raw();
-	if (this->_response->get_raw() != "") {
+	if (response != "") {
+		//std::cout << "Response: " << response << std::endl;
 		// send response - chunked writing based on buffer size
+		//std::cout << "fd: " << fd << std::endl;
 		size_t n = write(fd, response.c_str(), response.size());
 		if (n < 0) {
 			throw(std::exception());
 		} else {
 			if (n == response.size()) {
-				std::cout << "Response delivered. YAY!!!" << std::endl;
+				//std::cout << "Response delivered. YAY!!!" << std::endl;
 			}
 		}
 	}

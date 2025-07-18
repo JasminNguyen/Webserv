@@ -1,6 +1,9 @@
 #include "Response.hpp"
 
-Response::Response() {}
+Response::Response() {
+	this->_raw = "";
+}
+
 Response::~Response() {}
 
 std::string	&Response::get_raw() {

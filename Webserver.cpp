@@ -37,9 +37,11 @@ void	Webserver::populate_socket_connections() {
 	it != this->_config.end(); it++) {
 		std::vector<Connection>::iterator con = this->_connection_exists(it);
 		if (con == this->_connections.end()) {
+			std::cout << "Create new connection" << std::endl;
 			//create new socket, etc.
-			ListeningSocket l_sock = ListeningSocket(it->port, it->host);
-			Connection new_con = Connection(&l_sock);
+			//std::cout << "port:  " << it->port << " host: " <<it->host << std::endl;
+			ListeningSocket *l_sock = new ListeningSocket(it->port, it->host);
+			Connection new_con = Connection(l_sock);
 			new_con.add_server(it);
 			this->_connections.push_back(new_con);
 		} else {
@@ -63,7 +65,9 @@ connection and add it to pollfd vector */
 void	Webserver::create_polls() {
 	for (std::vector<Connection>::iterator it = this->_connections.begin();
 	it != this->_connections.end(); it++) {
-		this->add_connection_to_poll(it->get_socket()->get_fd());
+		int fd = it->get_socket()->get_fd();
+		//std::cout << "FD: " << fd << std::endl;
+		this->add_connection_to_poll(fd);
 	}
 }
 
@@ -112,6 +116,7 @@ void	Webserver::launch() {
 
 		for (std::vector<pollfd>::iterator poll = this->_polls.begin();
 		poll != this->_polls.end() && n > 0; poll++) {
+			//std::cout << "How often do we get here?" << std::endl;
 			if (poll->revents & POLLIN || poll->revents & POLLOUT) {
 				con = this->find_triggered_socket(*poll);
 				if (con) {

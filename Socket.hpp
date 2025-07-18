@@ -1,6 +1,8 @@
 #ifndef SOCKET_HPP
 # define SOCKET_HPP
 
+#include "webserv.hpp"
+
 class Socket {
 
 	public:
@@ -10,10 +12,12 @@ class Socket {
 		~Socket();
 
 		int	get_fd();
+		std::string get_type();
 
 	protected:
 
 		int	_fd;
+		std::string	_type;
 
 };
 

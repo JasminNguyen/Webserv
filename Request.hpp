@@ -9,6 +9,7 @@ class Request {
 
 	public:
 
+		Request();
 		Request(std::string raw);
 		~Request();
 

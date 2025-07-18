@@ -13,13 +13,14 @@ ListeningSocket::ListeningSocket(int port, std::string host) : Socket(-1) {
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = inet_addr(host.c_str());
 
-
+    this->_type = "Listening Socket";
 
     int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_fd < 0) {
         std::cerr << "socket() faild" << std::endl;
     } else {
         this->_fd = sock_fd;
+        //std::cout << "Sock fd: " << this->_fd << std::endl;
         int connection = bind(this->_fd, (struct sockaddr *)&addr, sizeof(addr));
         if (connection < 0) {
             std::cerr << "bind() faild" << std::endl;
