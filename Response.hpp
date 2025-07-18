@@ -17,7 +17,6 @@ class Response {
 		std::string							&get_status_code();
 		std::string							&get_status_string();
 		std::map<std::string, std::string>	&get_headers();
-		std::string							&get_source();
 		std::string							&get_body();
 
 		void	assemble();
@@ -29,7 +28,6 @@ class Response {
 		std::string	_status_code;
 		std::string	_status_string;
 		std::map<std::string, std::string>	_headers;
-		// std::string							_source;
 		std::string							_body;
 
 		void	_add_status_line();

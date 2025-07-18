@@ -9,9 +9,9 @@ class CGISource : public Source {
 
     private:
 
-        unsigned int    _fd_in;
-        unsigned int    _fd_out;
+        // unsigned int    _fd_in;
+        // unsigned int    _fd_out;
 
-}
+};
 
 #endif

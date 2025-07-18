@@ -1,24 +1,26 @@
 #ifndef CONNECTION_HPP
 # define CONNECTION_HPP
 
-# include "Request.hpp"
-# include "Response.hpp"
-# include "Socket.hpp"
-# include "Source.hpp"
-# include "CGI.hpp"
 # include "config_parser.hpp"
-# include "Webserver.hpp"
+# include "webserv.hpp"
+
+class Socket;
+class Request;
+class Response;
+class Source;
+class Webserver;
 
 class Connection {
 
 	public:
 
-		Connection(Socket &sock);
+		Connection();
+		Connection(Socket *sock);
 		~Connection();
 
 		Connection &operator=(const Connection &ref);
 
-		Socket		&get_socket();
+		Socket		*get_socket();
 		std::vector<configParser::ServerConfig>	&getServers();
 		Request		*get_request();
 		Response	*get_response();
@@ -33,9 +35,7 @@ class Connection {
 
 	private:
 
-		Connection();
-
-		Socket		&_sock;
+		Socket		*_sock;
 		std::vector<configParser::ServerConfig> _servers;
 		Request		*_request;
 		Response	*_response;

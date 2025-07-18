@@ -5,6 +5,7 @@ class Socket {
 
 	public:
 
+		Socket();
 		Socket(int fd);
 		~Socket();
 

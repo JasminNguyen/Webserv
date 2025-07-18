@@ -1,7 +1,9 @@
 #include "webserv.hpp"
 #include "Webserver.hpp"
 #include <typeinfo>
+#include "Connection.hpp"
 #include "ListeningSocket.hpp"
+#include "Source.hpp"
 
 Webserver::Webserver() {}
 Webserver::~Webserver() {}
@@ -19,7 +21,7 @@ std::vector<pollfd>	&Webserver::get_polls() {
 	return this->_polls;
 }
 
-std::map<Source &, Connection &>	&Webserver::get_source_map() {
+std::map<Source, Connection>	&Webserver::get_source_map() {
 	return this->_source_map;
 }
 
@@ -37,7 +39,7 @@ void	Webserver::populate_socket_connections() {
 		if (con == this->_connections.end()) {
 			//create new socket, etc.
 			ListeningSocket l_sock = ListeningSocket(it->port, it->host);
-			Connection new_con = Connection(l_sock);
+			Connection new_con = Connection(&l_sock);
 			new_con.add_server(it);
 			this->_connections.push_back(new_con);
 		} else {
@@ -61,7 +63,7 @@ connection and add it to pollfd vector */
 void	Webserver::create_polls() {
 	for (std::vector<Connection>::iterator it = this->_connections.begin();
 	it != this->_connections.end(); it++) {
-		this->add_connection_to_poll(it->get_socket().get_fd());
+		this->add_connection_to_poll(it->get_socket()->get_fd());
 	}
 }
 
@@ -77,18 +79,20 @@ to then handle request or send response */
 Connection	*Webserver::find_triggered_socket(pollfd &poll) {
 	for (std::vector<Connection>::iterator con = this->_connections.begin();
 	con != this->_connections.end(); con++) {
-		if (con->get_socket().get_fd() == poll.fd) {
+		if (con->get_socket()->get_fd() == poll.fd) {
 			return &(*con);
 		}
 	}
+	return NULL;
 }
 
 Connection	*Webserver::find_triggered_source(pollfd &poll) {
-	for (std::map<Source &, Connection &>::iterator it = this->_source_map.begin(); it != this->_source_map.end(); it++) {
+	for (std::map<Source, Connection>::iterator it = this->_source_map.begin(); it != this->_source_map.end(); it++) {
 		if (it->first.get_fd() == poll.fd) {
 			return &(it->second);
 		}
 	}
+	return NULL;
 }
 
 /* remove pollfd instance from pollfd vector */
@@ -108,7 +112,7 @@ void	Webserver::launch() {
 
 		for (std::vector<pollfd>::iterator poll = this->_polls.begin();
 		poll != this->_polls.end() && n > 0; poll++) {
-			if (poll->revents & POLLIN | POLLOUT) {
+			if (poll->revents & POLLIN || poll->revents & POLLOUT) {
 				con = this->find_triggered_socket(*poll);
 				if (con) {
 					con->handle_socket_event(*this, *poll);
@@ -122,7 +126,7 @@ void	Webserver::launch() {
 	}
 }
 
-void	Webserver::parse_config(char *config_file) {
+void	Webserver::parse_config(const char *config_file) {
 	configParser configParser;
 	std::vector<std::string> tokenVector;
 

@@ -3,7 +3,9 @@
 
 # include "webserv.hpp"
 # include "config_parser.hpp"
-# include "Connection.hpp"
+
+class Connection;
+class Source;
 
 class Webserver {
 
@@ -15,12 +17,12 @@ class Webserver {
 		std::vector<configParser::ServerConfig>	&get_config();
 		std::vector<Connection>					&get_connections();
 		std::vector<pollfd>						&get_polls();
-		std::map<Source &, Connection &>		&get_source_map();
+		std::map<Source, Connection>		&get_source_map();
 
 
 
 		void	launch();
-		void	parse_config(char *config_file);
+		void	parse_config(const char *config_file);
 		void	populate();
 
 
@@ -32,7 +34,7 @@ class Webserver {
 		std::vector<configParser::ServerConfig>	_config;
 		std::vector<Connection>					_connections;
 		std::vector<pollfd>						_polls;
-		std::map<Source &, Connection &>		_source_map;
+		std::map<Source, Connection>		_source_map;
 
 		void	populate_socket_connections();
 		void	create_polls();

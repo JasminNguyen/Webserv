@@ -1,8 +1,7 @@
 #ifndef CONFIG_PARSER_HPP
-#define CONFIG_PARSER_HPP
+# define CONFIG_PARSER_HPP
 
-#include "webserv.hpp"
-#include <ostream> 
+# include <iostream>
 
 
 
@@ -10,7 +9,7 @@ class configParser
 {
     private:
 
-    public: 
+    public:
     struct LocationConfig
     {
         std::string path;
@@ -19,7 +18,7 @@ class configParser
         int allowed_methods_present;
         std::vector<std::string> allowed_methods;
 
-        LocationConfig() : autoindex(0) {} 
+        LocationConfig() : autoindex(0) {}
     };
 
     struct ServerConfig

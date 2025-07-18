@@ -1,7 +1,12 @@
-
 ///assuming that we have a .py extention
 
+#include "webserv.hpp"
 #include "CGI.hpp"
+#include "Connection.hpp"
+#include "Request.hpp"
+#include "Webserver.hpp"
+#include "Source.hpp"
+
 
 
 char ** CGI::construct_envp(Request& request, configParser::ServerConfig & server_block)
@@ -30,9 +35,9 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
     }
     else // -> "/cgi-bin/foo.py"
     {
-        env.push_back("SCRIPT_NAME=" + request.get_target()); 
+        env.push_back("SCRIPT_NAME=" + request.get_target());
     }
-    
+
     if(request.get_method() == "GET")
     {
         int pos_question_mark = request.get_target().find("?");
@@ -66,9 +71,9 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
             env.push_back("SERVER_NAME=" + it->second);
         }
     }
-    env.push_back("SERVER_PORT=" + server_block.port);
+    env.push_back("SERVER_PORT=" + std::to_string(server_block.port));
     env.push_back("GATEWAY_INTERFACE=CGI/1.1");
-    
+
     int array_length = env.size();
     char **envp = new char*[array_length];
     for(int i = 0; i < array_length; i++)
@@ -112,7 +117,7 @@ char** CGI::construct_argv(const char* &script_path)
 //     target_to_append = target_uri.substr(second, target_uri.size()); // make "/foo.py" out of it -> to append later
 
 //     //iterating through all of the locations structs in the Locations vector to find the right path (that is "/cgi-bin" in this case)
-//     for(size_t i = 0; i < server_block.locations.size(); i++) 
+//     for(size_t i = 0; i < server_block.locations.size(); i++)
 //     {
 //         if(server_block.locations[i].path == target_to_match) //found a match in one of the location blocks
 //         {
@@ -130,12 +135,12 @@ char** CGI::construct_argv(const char* &script_path)
 
 // }
 
-int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, Webserver & webserver, Connection *conn)
+void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, Webserver & webserver, Connection *conn)
 {
     //creating 2 pipes (one that the cgi reads and one that the cgi writes to)
     /*
     sooo we have 4 filedescriptors:
-   
+
     in_pipe[1]	write end	your server writes the request body here
     in_pipe[0]	read end	the CGI script reads it from stdin
     out_pipe[1]	write end	the CGI writes its output to this
@@ -144,14 +149,12 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, We
     int out_pipe[2];
     if(pipe(in_pipe)== -1 || pipe(out_pipe) == -1)
     {
-        std::cerr << "couldn't pipe" << std::endl;
-        return -1;
+        throw(std::runtime_error("couldn't pipe"));
     }
     pid_t pid = fork();
     if(pid == -1)
     {
-        std::cerr << "couldn't fork" << std::endl;
-        return -1;
+        throw(std::runtime_error("couldn't fork"));
     }
     if(pid == 0) //child
     {
@@ -174,24 +177,24 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, We
         const char *script_path = conn->get_source()->get_path().c_str();
         char **argv = construct_argv(script_path);
         char **envp = construct_envp(request, server_block);
-        
+
         //script_path I have to construct myself out of the info in the request header and the locations
-        //argv: 
+        //argv:
         // usually something like:
         // char* argv[] = {
         //     const_cast<char*>(script_path.c_str()),  // argv[0] = script name
         //     NULL
         // };
-        //envp: 
+        //envp:
         //will be first be a vector of strings (to make it resizable) and then we convert it to an array as well
         execve(script_path, argv, envp);
-        
+
         perror("execve failed"); // only runs if exec fails
         exit(1);
     }
     else // parent (our beautiful server)
     {
-    
+
 
     // closing unused pipe ends
     close(in_pipe[0]);  // we don't read from stdin pipe
@@ -211,7 +214,7 @@ int CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, We
     conn->get_source()->set_fd(out_pipe[0]);
     webserver.get_source_map()[*(conn->get_source())] = *conn;
     //should we maybe use pointers in the map instead of references here? -> ask Marc
-    
+
 
     }
 }

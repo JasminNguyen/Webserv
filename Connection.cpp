@@ -3,10 +3,14 @@
 #include <typeinfo>
 #include "ListeningSocket.hpp"
 #include "Webserver.hpp"
-#include <iostream>
 #include "CGI.hpp"
+#include "Source.hpp"
+#include "Response.hpp"
+#include "Request.hpp"
+#include "Socket.hpp"
 
-Connection::Connection(Socket &sock) : _sock(sock) {}
+Connection::Connection() {}
+Connection::Connection(Socket *sock) : _sock(sock) {}
 Connection::~Connection() {}
 
 Connection &Connection::operator=(const Connection &ref) {
@@ -19,7 +23,7 @@ Connection &Connection::operator=(const Connection &ref) {
 	return *this;
 }
 
-Socket	&Connection::get_socket() {
+Socket	*Connection::get_socket() {
 	return this->_sock;
 }
 
@@ -72,7 +76,7 @@ void	Connection::handle_source_event(Webserver &webserver, pollfd &poll) {
 		if (n == 0) {
 			// generate response parts
 			this->_response->get_http_version() = "HTTP /1.1";
-			this->_response->get_status_code() = 200;
+			this->_response->get_status_code() = "200";
 			this->_response->get_status_string() = "OK";
 			this->_response->get_headers() = this->_request->get_headers();
 			webserver.remove_from_poll(src_fd);
@@ -96,9 +100,9 @@ void	Connection::add_server(std::vector<configParser::ServerConfig>::iterator it
 /* accept incoming request on listening socket and
 create client socket to establish conncetion */
 void	Connection::accept_request(Webserver &webserv) {
-	int new_fd = accept(this->get_socket().get_fd(), 0, 0); // Are 0s okay or should we provide info?
+	int new_fd = accept(this->get_socket()->get_fd(), 0, 0); // Are 0s okay or should we provide info?
 	Socket *new_sock = new Socket(new_fd);
-	Connection *new_con = new Connection(*new_sock);
+	Connection *new_con = new Connection(new_sock);
 	// Create new Source object for this connection
     new_con->_source = new Source(); //added by Jasmin -> to be reviewed by Marc
 	webserv.get_connections().push_back(*new_con);
@@ -135,7 +139,7 @@ void	Connection::handle_request(Webserver &webserv) {
 					std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
 				}
 				// add fd and connection to map
-				std::map<Source &, Connection &> map = webserv.get_source_map();
+				std::map<Source, Connection> map = webserv.get_source_map();
 				map[*(this->_source)] = *this;
 				// add poll instance to poll vector
 				webserv.add_connection_to_poll(fd);
@@ -145,11 +149,11 @@ void	Connection::handle_request(Webserver &webserv) {
 
 /* if response != NULL, assemble response and send to client */
 void	Connection::send_response() {
-	int fd = this->get_socket().get_fd();
+	int fd = this->get_socket()->get_fd();
 	std::string response = this->_response->get_raw();
 	if (this->_response->get_raw() != "") {
 		// send response - chunked writing based on buffer size
-		int n = write(fd, response.c_str(), response.size());
+		size_t n = write(fd, response.c_str(), response.size());
 		if (n < 0) {
 			throw(std::exception());
 		} else {
@@ -202,7 +206,7 @@ configParser::ServerConfig& Connection::match_location_block()
 		std::vector<configParser::LocationConfig> locations_in_question = matched_server->locations;
 		std::string target_uri = _request->get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"
 
-		bool match_found = false;
+		//bool match_found = false;
 
 		//remove query string
 		std::size_t pos_question_mark = target_uri.find('?');
@@ -241,7 +245,7 @@ configParser::ServerConfig& Connection::match_location_block()
 			std::string relative_path = clean_uri.substr(best_location->path.length()); //start wher best_location ends until the end of the clean_uri and make a substring out of it
 			script_path = best_location->root + relative_path;
 			_source->set_path(script_path); //setting the constructed script path in Source
-			match_found = true;
+			//match_found = true;
 		}
 		else
 		{

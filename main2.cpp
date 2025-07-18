@@ -2,12 +2,13 @@
 #include "Webserver.hpp"
 
 int main(int argc, char **argv) {
-    char *config_file;
+    const char *config_file;
+    std::string default_file = "./config/default.conf";
 
     if (argc == 2) {
         config_file = argv[1];
     } else if (argc == 1) {
-        config_file = "./config/default.conf";
+        config_file = default_file.c_str();
     } else {
         std::cerr << "Error: Invalid number of arguments!" << std::endl;
         return 1;

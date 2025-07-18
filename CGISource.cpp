@@ -1,3 +1,1 @@
 #include "CGISource.hpp"
-
-CGISource() {}

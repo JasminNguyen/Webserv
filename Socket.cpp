@@ -1,5 +1,6 @@
 #include "Socket.hpp"
 
+Socket::Socket() {}
 Socket::Socket(int fd) : _fd(fd) {}
 Socket::~Socket() {}
 

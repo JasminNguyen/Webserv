@@ -23,10 +23,6 @@ std::map<std::string, std::string>	&Response::get_headers() {
 	return this->_headers;
 }
 
-std::string	&Response::get_source() {
-	return this->_source;
-}
-
 std::string	&Response::get_body() {
 	return this->_body;
 }
