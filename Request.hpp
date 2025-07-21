@@ -11,7 +11,10 @@ class Request {
 
 		Request();
 		Request(std::string raw);
+		Request(const Request &ref);
 		~Request();
+
+		Request								&operator=(const Request &ref);
 
 		std::string							&get_raw();
 		std::string							&get_method();
@@ -24,16 +27,16 @@ class Request {
 
 	private:
 
-		std::string	_raw; // raw string
-		std::string	_method; // GET, POST, DELETE
-		std::string	_target; // file path
-		std::string	_http_version; // default HTTP/1.1
+		std::string							_raw; // raw string
+		std::string							_method; // GET, POST, DELETE
+		std::string							_target; // file path
+		std::string							_http_version; // default HTTP/1.1
 		std::map<std::string, std::string>	_headers; // key value pairs
-		std::string	_body;
+		std::string							_body;
 
 
-		void	_parse_start_line(std::string line);
-		void	_parse_header_line(std::string line);
+		void								_parse_start_line(std::string line);
+		void								_parse_header_line(std::string line);
 
 };
 

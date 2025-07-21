@@ -1,8 +1,31 @@
 #include "Request.hpp"
 
 Request::Request() {}
+
 Request::Request(std::string raw) : _raw(raw) {}
+
+Request::Request(const Request &ref) {
+	this->_body = ref._body;
+	this->_headers = ref._headers;
+	this->_http_version = ref._http_version;
+	this->_method = ref._method;
+	this->_raw = ref._raw;
+	this->_target = ref._target;
+}
+
 Request::~Request() {}
+
+Request	&Request::operator=(const Request &ref) {
+	if (this != &ref) {
+		this->_body = ref._body;
+		this->_headers = ref._headers;
+		this->_http_version = ref._http_version;
+		this->_method = ref._method;
+		this->_raw = ref._raw;
+		this->_target = ref._target;
+	}
+	return *this;
+}
 
 std::string	&Request::get_raw() {
 	return this->_raw;
