@@ -10,7 +10,10 @@ class Response {
 	public:
 
 		Response();
+		Response(const Response &ref);
 		~Response();
+
+		Response							&operator=(const Response &ref);
 
 		std::string							&get_raw();
 		std::string							&get_http_version();
@@ -19,20 +22,20 @@ class Response {
 		std::map<std::string, std::string>	&get_headers();
 		std::string							&get_body();
 
-		void	assemble();
+		void								assemble();
 
 	private:
 
-		std::string	_raw;
-		std::string	_http_version;
-		std::string	_status_code;
-		std::string	_status_string;
+		std::string							_raw;
+		std::string							_http_version;
+		std::string							_status_code;
+		std::string							_status_string;
 		std::map<std::string, std::string>	_headers;
 		std::string							_body;
 
-		void	_add_status_line();
-		void	_add_headers();
-		void	_add_static_body();
+		void								_add_status_line();
+		void								_add_headers();
+		void								_add_static_body();
 };
 
 #endif

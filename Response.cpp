@@ -4,7 +4,28 @@ Response::Response() {
 	this->_raw = "";
 }
 
+Response::Response(const Response &ref) {
+	this->_body = ref._body;
+	this->_headers = ref._headers;
+	this->_http_version = ref._http_version;
+	this->_raw = ref._raw;
+	this->_status_code = ref._status_code;
+	this->_status_string = ref._status_string;
+}
+
 Response::~Response() {}
+
+Response	&Response::operator=(const Response &ref) {
+	if (this != &ref) {
+		this->_body = ref._body;
+		this->_headers = ref._headers;
+		this->_http_version = ref._http_version;
+		this->_raw = ref._raw;
+		this->_status_code = ref._status_code;
+		this->_status_string = ref._status_string;
+	}
+	return *this;
+}
 
 std::string	&Response::get_raw() {
 	return this->_raw;
