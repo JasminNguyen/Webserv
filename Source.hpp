@@ -8,6 +8,12 @@ class Source {
 
     public:
 
+        Source();
+        Source(const Source &ref);
+        ~Source();
+
+        Source &operator=(const Source &ref);
+
         const int &get_fd() const;
 
         void set_fd(int fd);
