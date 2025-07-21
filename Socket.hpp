@@ -9,7 +9,10 @@ class Socket {
 
 		Socket();
 		Socket(int fd);
+		Socket(const Socket &ref);
 		~Socket();
+
+		Socket &operator=(const Socket &ref);
 
 		int	get_fd();
 		std::string get_type();
