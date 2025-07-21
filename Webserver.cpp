@@ -6,8 +6,19 @@
 #include "Source.hpp"
 
 Webserver::Webserver() {}
+
+Webserver::Webserver(const Webserver &ref) {
+	(void)ref;
+}
+
 Webserver::~Webserver() {}
 
+Webserver &Webserver::operator=(const Webserver &ref) {
+	if (this != &ref) {
+		(void)ref;
+	}
+	return *this;
+}
 
 std::vector<configParser::ServerConfig>	&Webserver::get_config() {
 	return this->_config;
@@ -116,7 +127,6 @@ void	Webserver::launch() {
 
 		for (std::vector<pollfd>::iterator poll = this->_polls.begin();
 		poll != this->_polls.end() && n > 0; poll++) {
-			//std::cout << "How often do we get here?" << std::endl;
 			if (poll->revents & POLLIN || poll->revents & POLLOUT) {
 				con = this->find_triggered_socket(*poll);
 				if (con) {

@@ -12,14 +12,15 @@ class Webserver {
 	public:
 
 		Webserver();
+		Webserver(const Webserver &ref);
 		~Webserver();
+
+		Webserver &operator=(const Webserver &ref);
 
 		std::vector<configParser::ServerConfig>	&get_config();
 		std::vector<Connection>					&get_connections();
 		std::vector<pollfd>						&get_polls();
 		std::map<Source, Connection>		&get_source_map();
-
-
 
 		void	launch();
 		void	parse_config(const char *config_file);
