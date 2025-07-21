@@ -75,7 +75,10 @@ void	Request::_parse_header_line(std::string line) {
 	std::istringstream ss(line);
 
 	ss >> key;
-	key.erase(key.length() - 1);
+	if (key.empty()) {
+		return;
+	}
+	key.erase(key.length() - 1, 1);
 
 	ss >> value;
 
