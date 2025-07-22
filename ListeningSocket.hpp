@@ -8,7 +8,12 @@ class ListeningSocket : public Socket {
 
 	public:
 
+		ListeningSocket();
 		ListeningSocket(int port, std::string host);
+		ListeningSocket(const ListeningSocket &ref);
+		~ListeningSocket();
+
+		ListeningSocket	&operator=(const ListeningSocket &ref);
 
 	private:
 
