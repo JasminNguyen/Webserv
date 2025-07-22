@@ -2,6 +2,7 @@
 
 Source::Source() {
     std::cout << "Source gets created" << std::endl;
+    this->_fd = -1;
 }
 
 Source::Source(const Source &ref) {

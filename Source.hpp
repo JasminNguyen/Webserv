@@ -21,7 +21,7 @@ class Source {
         std::string &get_path();
         bool        operator<(const Source &ref) const;
 
-    private:
+    protected:
 
         int         _fd;
         std::string _path;
