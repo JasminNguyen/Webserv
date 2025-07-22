@@ -3,12 +3,11 @@
 
 # include "config_parser.hpp"
 # include "webserv.hpp"
-
-class Socket;
-class Request;
-class Response;
-class Source;
-class Webserver;
+# include "Request.hpp"
+# include "Response.hpp"
+# include "Socket.hpp"
+# include "Source.hpp"
+# include "Webserver.hpp"
 
 class Connection {
 

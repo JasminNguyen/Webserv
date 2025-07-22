@@ -48,10 +48,11 @@ void	Webserver::populate_socket_connections() {
 	it != this->_config.end(); it++) {
 		std::vector<Connection>::iterator con = this->_connection_exists(it);
 		if (con == this->_connections.end()) {
+			Connection();
 			std::cout << "Create new connection" << std::endl;
 			//create new socket, etc.
 			//std::cout << "port:  " << it->port << " host: " <<it->host << std::endl;
-			ListeningSocket *l_sock = new ListeningSocket(it->port, it->host);
+			ListeningSocket l_sock = ListeningSocket(it->port, it->host);
 			Connection new_con = Connection(l_sock);
 			new_con.add_server(it);
 			this->_connections.push_back(new_con);
@@ -76,7 +77,7 @@ connection and add it to pollfd vector */
 void	Webserver::create_polls() {
 	for (std::vector<Connection>::iterator it = this->_connections.begin();
 	it != this->_connections.end(); it++) {
-		int fd = it->get_socket()->get_fd();
+		int fd = it->get_socket().get_fd();
 		//std::cout << "FD: " << fd << std::endl;
 		this->add_connection_to_poll(fd);
 	}
@@ -94,7 +95,7 @@ to then handle request or send response */
 Connection	*Webserver::find_triggered_socket(pollfd &poll) {
 	for (std::vector<Connection>::iterator con = this->_connections.begin();
 	con != this->_connections.end(); con++) {
-		if (con->get_socket()->get_fd() == poll.fd) {
+		if (con->get_socket().get_fd() == poll.fd) {
 			return &(*con);
 		}
 	}

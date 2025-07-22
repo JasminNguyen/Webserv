@@ -2,24 +2,19 @@
 #include "webserv.hpp"
 #include <typeinfo>
 #include "ListeningSocket.hpp"
-#include "Webserver.hpp"
 #include "CGI.hpp"
-#include "Source.hpp"
-#include "Response.hpp"
-#include "Request.hpp"
-#include "Socket.hpp"
 
 Connection::Connection() {
-	std::cout << "Connection default constructor called" << std::endl;
+	//std::cout << "Connection default constructor called" << std::endl;
 }
 
 Connection::Connection(Socket sock) : _sock(sock) {
-	std::cout << "Connection data constructor called" << std::endl;
-	//this->_response->get_raw() = "";
+	//std::cout << "Connection data constructor called" << std::endl;
+	this->_sock = sock;
 }
 
 Connection::Connection(const Connection &ref) {
-	std::cout << "Connection copy constructor called" << std::endl;
+	//std::cout << "Connection copy constructor called" << std::endl;
 	this->_request = ref._request;
 	this->_response = ref._response;
 	this->_servers = ref._servers;
@@ -30,11 +25,11 @@ Connection::Connection(const Connection &ref) {
 }
 
 Connection::~Connection() {
-	std::cout << "Connection destructor called" << std::endl;
+	//std::cout << "Connection destructor called" << std::endl;
 }
 
 Connection &Connection::operator=(const Connection &ref) {
-	std::cout << "Connection copy assignment operator called" << std::endl;
+	//std::cout << "Connection copy assignment operator called" << std::endl;
 	if (this != &ref) {
 		this->_request = ref._request;
 		this->_response = ref._response;
