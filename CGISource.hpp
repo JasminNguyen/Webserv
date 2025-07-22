@@ -7,10 +7,13 @@ class CGISource : public Source {
 
     public:
 
-    private:
+        CGISource();
+        CGISource(const CGISource &ref);
+        ~CGISource();
 
-        // unsigned int    _fd_in;
-        // unsigned int    _fd_out;
+        CGISource   &operator=(const CGISource &ref);
+
+    private:
 
 };
 
