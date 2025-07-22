@@ -12,14 +12,14 @@ class Socket {
 		Socket(const Socket &ref);
 		~Socket();
 
-		Socket &operator=(const Socket &ref);
+		Socket		&operator=(const Socket &ref);
 
-		int	get_fd();
-		std::string get_type();
+		int			get_fd();
+		std::string	get_type();
 
 	protected:
 
-		int	_fd;
+		int			_fd;
 		std::string	_type;
 
 };

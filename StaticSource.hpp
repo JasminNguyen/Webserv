@@ -9,13 +9,13 @@ class StaticSource {
         StaticSource(const StaticSource &ref);
         ~StaticSource();
 
-        StaticSource &operator=(const StaticSource &ref);
+        StaticSource    &operator=(const StaticSource &ref);
 
-        int &get_fd_out();
+        int             &get_fd_out();
 
     private:
 
-        int    _fd_out;
+        int             _fd_out;
 };
 
 #endif
