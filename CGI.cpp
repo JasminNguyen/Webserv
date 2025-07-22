@@ -135,7 +135,7 @@ char** CGI::construct_argv(const char* &script_path)
 
 // }
 
-void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, Webserver & webserver, Connection *conn)
+void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, Webserver & webserver, Connection &conn)
 {
     //creating 2 pipes (one that the cgi reads and one that the cgi writes to)
     /*
@@ -174,7 +174,7 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         // set up script_path, argv + envp, then exec
         //execve("/usr/bin/php-cgi", argv, envp);
         //const char* script_path = CGI::construct_script_path(request, server_block).c_str();
-        const char *script_path = conn->get_source()->get_path().c_str();
+        const char *script_path = conn.get_source().get_path().c_str();
         char **argv = construct_argv(script_path);
         char **envp = construct_envp(request, server_block);
 
@@ -211,8 +211,8 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
 
    //put out_pipe in Source-Connection map so that we know which CGI response belongs to which client
 
-    conn->get_source()->set_fd(out_pipe[0]);
-    webserver.get_source_map()[*(conn->get_source())] = *conn;
+    conn.get_source().set_fd(out_pipe[0]);
+    webserver.get_source_map()[conn.get_source()] = conn;
     //should we maybe use pointers in the map instead of references here? -> ask Marc
 
 
