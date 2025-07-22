@@ -10,24 +10,44 @@
 #include "Socket.hpp"
 
 Connection::Connection() {
-	std::cout << "Hi from Connection default constructor" << std::endl;
+	std::cout << "Connection default constructor called" << std::endl;
 }
-Connection::Connection(Socket *sock) : _sock(sock) {
+
+Connection::Connection(Socket sock) : _sock(sock) {
+	std::cout << "Connection data constructor called" << std::endl;
 	//this->_response->get_raw() = "";
 }
-Connection::~Connection() {}
+
+Connection::Connection(const Connection &ref) {
+	std::cout << "Connection copy constructor called" << std::endl;
+	this->_request = ref._request;
+	this->_response = ref._response;
+	this->_servers = ref._servers;
+	this->_sock = ref._sock;
+	this->_source = ref._source;
+	this->_host = ref._host;
+	this->_port = ref._port;
+}
+
+Connection::~Connection() {
+	std::cout << "Connection destructor called" << std::endl;
+}
 
 Connection &Connection::operator=(const Connection &ref) {
+	std::cout << "Connection copy assignment operator called" << std::endl;
 	if (this != &ref) {
-		this->_sock = ref._sock;
 		this->_request = ref._request;
 		this->_response = ref._response;
+		this->_servers = ref._servers;
+		this->_sock = ref._sock;
 		this->_source = ref._source;
+		this->_host = ref._host;
+		this->_port = ref._port;
 	}
 	return *this;
 }
 
-Socket	*Connection::get_socket() {
+Socket	&Connection::get_socket() {
 	return this->_sock;
 }
 
@@ -35,15 +55,15 @@ std::vector<configParser::ServerConfig>	&Connection::getServers() {
 			return this->_servers;
 		}
 
-Request	*Connection::get_request() {
+Request	&Connection::get_request() {
 	return this->_request;
 }
 
-Response	*Connection::get_response() {
+Response	&Connection::get_response() {
 	return this->_response;
 }
 
-Source	*Connection::get_source() {
+Source	&Connection::get_source() {
 	return this->_source;
 }
 
@@ -61,7 +81,7 @@ void	Connection::handle_socket_event(Webserver &webserv, pollfd &poll) {
 	//std::cout << "poll fd: " << poll.fd << std::endl;
 	if (poll.revents & POLLIN) {
 		std::cout << "HERE WE GO with POLLIN!" << std::endl;
-		if (this->get_socket()->get_type() == "Listening Socket") {
+		if (this->get_socket().get_type() == "Listening Socket") {
 			std::cout << "HERE WE GO with Listening Socket!" << std::endl;
 			this->accept_request(webserv);
 		} else {
@@ -77,22 +97,22 @@ void	Connection::handle_socket_event(Webserver &webserv, pollfd &poll) {
 /* read from connection source and append to connection response */
 void	Connection::handle_source_event(Webserver &webserver, pollfd &poll) {
 	char buf[1024];
-	int src_fd = this->_source->get_fd();
+	int src_fd = this->_source.get_fd();
 
 	if (poll.revents & POLLIN) {
 		// read from source and pass into response instance
 		int n = read(src_fd, buf, 1024);
-		this->_response->get_body().append(buf);
+		this->_response.get_body().append(buf);
 		if (n == 0) {
 			// generate response parts
-			this->_response->get_http_version() = "HTTP /1.1";
-			this->_response->get_status_code() = "200";
-			this->_response->get_status_string() = "OK";
-			this->_response->get_headers() = this->_request->get_headers();
+			this->_response.get_http_version() = "HTTP /1.1";
+			this->_response.get_status_code() = "200";
+			this->_response.get_status_string() = "OK";
+			this->_response.get_headers() = this->_request.get_headers();
 			webserver.remove_from_poll(src_fd);
 			// close source fd
 			close(src_fd);
-			this->_response->assemble();
+			this->_response.assemble();
 		}
 	} /*else { // if POLLOUT
 		// chunk writing to source fd (cgi)
@@ -110,18 +130,18 @@ void	Connection::add_server(std::vector<configParser::ServerConfig>::iterator it
 /* accept incoming request on listening socket and
 create client socket to establish conncetion */
 void	Connection::accept_request(Webserver &webserv) {
-	int new_fd = accept(this->get_socket()->get_fd(), 0, 0); // Are 0s okay or should we provide info?
+	int new_fd = accept(this->get_socket().get_fd(), 0, 0); // Are 0s okay or should we provide info?
 	std::cout << "Accept request" << std::endl;
 	if (new_fd < 0) {
 		std::cout << "We have a problem." << std::endl;
 	}
-	Socket *new_sock = new Socket(new_fd);
-	Connection *new_con = new Connection(new_sock);
+	Socket new_sock = Socket(new_fd);
+	Connection new_con = Connection(new_sock);
 	// Create new Source object for this connection
-    new_con->_source = new Source(); //added by Jasmin -> to be reviewed by Marc
-	new_con->_request = new Request();
-	new_con->_response = new Response();
-	webserv.get_connections().push_back(*new_con);
+    new_con._source = Source(); //added by Jasmin -> to be reviewed by Marc
+	new_con._request = Request();
+	new_con._response = Response();
+	webserv.get_connections().push_back(new_con);
 	webserv.add_connection_to_poll(new_fd);
 }
 
@@ -130,51 +150,55 @@ void	Connection::handle_request(Webserver &webserv) {
 	char buf[1024];
 	// read into this->_req->_raw
 	std::cout << "handle request on client socket" << std::endl;
-	size_t n = read(this->_sock->get_fd(), buf, sizeof(buf));
+	size_t n = read(this->_sock.get_fd(), buf, sizeof(buf));
 	if (n < 0) {
 		throw(std::exception());
 	} else { // difference between n == 0 and n > 0 ???
-		this->_request->get_raw().append(buf);
+		this->_request.get_raw().append(buf);
 	}
-	this->_request->parse();
+	if (n < 1024) {
+		this->_request.parse();
+	}
 	// create response
-	std::string target = this->_request->get_target();
-	if (target.substr(target.size() - 3, target.size() -1).compare(".py") == 0) {
+	std::string target = this->_request.get_target();
+	if (target.size() >= 3 && target.substr(target.size() - 3).compare(".py") == 0) {
+		std::cout << "Hi from the if block to initiate CGI" << std::endl;
 		// static file or cgi
 		/*in here we would probably call the cgi -> to be approved by Marc!
 		cgi.run_cgi(request, server_block, webserver, this);
 		*/
 		configParser::ServerConfig server = this->match_location_block(); //please return the right server block
-		CGI::run_cgi(*(this->_request), server, webserv, this);
+		CGI::run_cgi(this->_request, server, webserv, *this);
 
 	} else {
 		// open static file and add fd to poll vector
 			// check if file exists
 			// check if file is readable
 			// different error pages if file not readable or doesn't exist?
-			this->match_location_block();
-			std::string file_path = this->_source->get_path();
-			if (access(file_path.c_str() , R_OK) == -1) {
-				std::cerr << "File doesn't exist or isn't readable." << std::endl;
-			} else {
-				// open file
-				int fd = open(file_path.c_str(), O_RDONLY);
-				if (fd == -1) {
-					std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
-				}
-				// add fd and connection to map
-				std::map<Source, Connection> map = webserv.get_source_map();
-				map[*(this->_source)] = *this;
-				// add poll instance to poll vector
-				webserv.add_connection_to_poll(fd);
+		//this->match_location_block();
+		this->_source.set_path("./content/test.html");
+		std::string file_path = this->_source.get_path();
+		if (access(file_path.c_str() , R_OK) == -1) {
+			std::cerr << "File doesn't exist or isn't readable." << std::endl;
+		} else {
+			// open file
+			int fd = open(file_path.c_str(), O_RDONLY);
+			if (fd == -1) {
+				std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
 			}
+			// add fd and connection to map
+			std::map<Source, Connection> map = webserv.get_source_map();
+			map[this->_source] = *this;
+			// add poll instance to poll vector
+			webserv.add_connection_to_poll(fd);
+		}
 	}
 }
 
 /* if response != NULL, assemble response and send to client */
 void	Connection::send_response() {
-	int fd = this->get_socket()->get_fd();
-	std::string response = this->_response->get_raw();
+	int fd = this->get_socket().get_fd();
+	std::string response = this->_response.get_raw();
 	if (response != "") {
 		//std::cout << "Response: " << response << std::endl;
 		// send response - chunked writing based on buffer size
@@ -197,7 +221,7 @@ configParser::ServerConfig& Connection::match_location_block()
 	 I just need to consider those for the next steps */
 
 	// 2. find the host header of the request
-	std::map<std::string, std::string> &headers = _request->get_headers();
+	std::map<std::string, std::string> &headers = _request.get_headers();
 	std::string host_header;
 	for(std::map<std::string, std::string>::iterator it =  headers.begin(); it != headers.end(); it++)
 	{
@@ -230,7 +254,7 @@ configParser::ServerConfig& Connection::match_location_block()
 	if(!matched_server->locations.empty()) //check if there are locations
 	{
 		std::vector<configParser::LocationConfig> locations_in_question = matched_server->locations;
-		std::string target_uri = _request->get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"
+		std::string target_uri = _request.get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"
 
 		//bool match_found = false;
 
@@ -270,7 +294,7 @@ configParser::ServerConfig& Connection::match_location_block()
 			// Append the rest of the URI (after the location path) to the root
 			std::string relative_path = clean_uri.substr(best_location->path.length()); //start wher best_location ends until the end of the clean_uri and make a substring out of it
 			script_path = best_location->root + relative_path;
-			_source->set_path(script_path); //setting the constructed script path in Source
+			_source.set_path(script_path); //setting the constructed script path in Source
 			//match_found = true;
 		}
 		else
