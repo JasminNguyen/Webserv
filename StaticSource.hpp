@@ -5,6 +5,12 @@ class StaticSource {
 
     public:
 
+        StaticSource();
+        StaticSource(const StaticSource &ref);
+        ~StaticSource();
+
+        StaticSource &operator=(const StaticSource &ref);
+
         int &get_fd_out();
 
     private:
