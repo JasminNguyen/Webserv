@@ -22,6 +22,8 @@ class Webserver {
 		std::vector<pollfd>						&get_polls();
 		std::map<Source, Connection>			&get_source_map();
 
+		void									add_to_source_map(Source key, Connection value);
+
 		void									launch();
 		void									parse_config(const char *config_file);
 		void									populate();

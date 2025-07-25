@@ -36,6 +36,10 @@ std::map<Source, Connection>	&Webserver::get_source_map() {
 	return this->_source_map;
 }
 
+void	Webserver::add_to_source_map(Source key, Connection value) {
+	this->_source_map[key] = value;
+}
+
 void	Webserver::populate() {
 	populate_socket_connections();
 	create_polls();
