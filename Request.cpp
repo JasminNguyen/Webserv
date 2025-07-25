@@ -1,8 +1,19 @@
 #include "Request.hpp"
 
-Request::Request() {}
+Request::Request() {
+	this->_body = "";
+	this->_http_version = "";
+	this->_method = "";
+	this->_raw = "";
+	this->_target = "";
+}
 
-Request::Request(std::string raw) : _raw(raw) {}
+Request::Request(std::string raw) : _raw(raw) {
+	this->_body = "";
+	this->_http_version = "";
+	this->_method = "";
+	this->_target = "";
+}
 
 Request::Request(const Request &ref) {
 	this->_body = ref._body;
