@@ -1,7 +1,11 @@
 #include "Response.hpp"
 
 Response::Response() {
+	this->_body = "";
+	this->_http_version = "";
 	this->_raw = "";
+	this->_status_code = "";
+	this->_status_string = "";
 }
 
 Response::Response(const Response &ref) {
