@@ -6,11 +6,15 @@
 
 Connection::Connection() {
 	//std::cout << "Connection default constructor called" << std::endl;
+	this->_host = "0.0.0.0";
+	this->_port = -1;
 }
 
 Connection::Connection(Socket sock) : _sock(sock) {
 	//std::cout << "Connection data constructor called" << std::endl;
 	this->_sock = sock;
+	this->_host = "0.0.0.0";
+	this->_port = -1;
 }
 
 Connection::Connection(const Connection &ref) {
@@ -181,9 +185,9 @@ void	Connection::handle_request(Webserver &webserv) {
 			if (fd == -1) {
 				std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
 			}
+			this->_source.set_fd(fd);
 			// add fd and connection to map
-			std::map<Source, Connection> map = webserv.get_source_map();
-			map[this->_source] = *this;
+			webserv.add_to_source_map(this->_source, *this);
 			// add poll instance to poll vector
 			webserv.add_connection_to_poll(fd);
 		}
