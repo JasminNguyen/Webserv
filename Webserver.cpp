@@ -52,12 +52,13 @@ void	Webserver::populate_socket_connections() {
 	it != this->_config.end(); it++) {
 		std::vector<Connection>::iterator con = this->_connection_exists(it);
 		if (con == this->_connections.end()) {
-			Connection();
 			std::cout << "Create new connection" << std::endl;
 			//create new socket, etc.
 			//std::cout << "port:  " << it->port << " host: " <<it->host << std::endl;
 			ListeningSocket l_sock = ListeningSocket(it->port, it->host);
 			Connection new_con = Connection(l_sock);
+			new_con.setHost(it->host);
+			new_con.setPort(it->port);
 			new_con.add_server(it);
 			this->_connections.push_back(new_con);
 		} else {
@@ -120,6 +121,7 @@ void	Webserver::remove_from_poll(int fd) {
 	for (std::vector<pollfd>::iterator it = this->_polls.begin(); it != this->_polls.end(); it++) {
 		if (it->fd == fd) {
 			this->_polls.erase(it);
+			return ;
 		}
 	}
 }
@@ -128,8 +130,12 @@ void	Webserver::remove_from_poll(int fd) {
 void	Webserver::launch() {
 	Connection	*con;
 	while (true) {
-		int n = poll(this->_polls.data(), this->_polls.size(), 100);
-
+		//std::cout << "Do we get here after having an empty response?" << std::endl;
+		int n = poll(this->_polls.data(), this->_polls.size(), 0);
+		if (n < 0) {
+			std::cerr << "Issue with poll" << std::endl;
+			throw(std::exception());
+		}
 		for (std::vector<pollfd>::iterator poll = this->_polls.begin();
 		poll != this->_polls.end() && n > 0; poll++) {
 			if (poll->revents & POLLIN || poll->revents & POLLOUT) {
@@ -138,7 +144,11 @@ void	Webserver::launch() {
 					con->handle_socket_event(*this, *poll);
 				} else {
 					con = this->find_triggered_source(*poll);
-					con->handle_source_event(*this, *poll);
+					if (con) {
+						con->handle_source_event(*this, *poll);
+					} else {
+						std::cout << "We shouldn't get here" << std::endl;
+					}
 				}
 				n--;
 			}
