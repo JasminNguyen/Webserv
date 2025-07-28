@@ -25,6 +25,14 @@ ListeningSocket::ListeningSocket(int port, std::string host) : Socket(-1) {
         std::cerr << "socket() failed" << std::endl;
     } else {
         this->_fd = sock_fd;
+
+        // making fd reusable again
+        int opt = 1;
+        if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+            perror("setsockopt");
+            exit(EXIT_FAILURE);
+        }
+
         //std::cout << "Sock fd: " << this->_fd << std::endl;
         int connection = bind(this->_fd, (struct sockaddr *)&addr, sizeof(addr));
         if (connection < 0) {
