@@ -10,7 +10,7 @@ Connection::Connection() {
 	this->_port = -1;
 }
 
-Connection::Connection(Socket sock) : _sock(sock) {
+Connection::Connection(Socket sock) {
 	//std::cout << "Connection data constructor called" << std::endl;
 	this->_sock = sock;
 	this->_host = "0.0.0.0";
@@ -74,6 +74,14 @@ std::string	&Connection::get_host() {
 	return this->_host;
 }
 
+void	Connection::setPort(int port) {
+	this->_port = port;
+}
+
+void	Connection::setHost(std::string host) {
+	this->_host = host;
+}
+
 /* detect type of triggered event and facilitate right action */
 void	Connection::handle_socket_event(Webserver &webserv, pollfd &poll) {
 	//std::cout << "revents: " << (poll.revents == POLLOUT ? "YES" : "NO") << std::endl;
@@ -102,7 +110,7 @@ void	Connection::handle_source_event(Webserver &webserver, pollfd &poll) {
 		// read from source and pass into response instance
 		int n = read(src_fd, buf, 1024);
 		this->_response.get_body().append(buf);
-		if (n == 0) {
+		if (n > 0 && n < 1024) {
 			// generate response parts
 			this->_response.get_http_version() = "HTTP /1.1";
 			this->_response.get_status_code() = "200";
@@ -134,12 +142,8 @@ void	Connection::accept_request(Webserver &webserv) {
 	if (new_fd < 0) {
 		std::cout << "We have a problem." << std::endl;
 	}
-	Socket new_sock = Socket(new_fd);
-	Connection new_con = Connection(new_sock);
-	// Create new Source object for this connection
-    new_con._source = Source(); //added by Jasmin -> to be reviewed by Marc
-	new_con._request = Request();
-	new_con._response = Response();
+	Connection new_con = Connection(*this);
+	new_con._sock = Socket(new_fd);
 	webserv.get_connections().push_back(new_con);
 	webserv.add_connection_to_poll(new_fd);
 }
@@ -156,6 +160,7 @@ void	Connection::handle_request(Webserver &webserv) {
 		this->_request.get_raw().append(buf);
 	}
 	if (n < 1024) {
+		std::cout << "We are parsing the request" << std::endl;
 		this->_request.parse();
 	}
 	// create response
@@ -190,6 +195,7 @@ void	Connection::handle_request(Webserver &webserv) {
 			webserv.add_to_source_map(this->_source, *this);
 			// add poll instance to poll vector
 			webserv.add_connection_to_poll(fd);
+			std::cout << "Opening static file has worked." << std::endl;
 		}
 	}
 }
@@ -199,6 +205,7 @@ void	Connection::send_response() {
 	int fd = this->get_socket().get_fd();
 	std::string response = this->_response.get_raw();
 	if (response != "") {
+		std::cout << "trying to send.." << std::endl;
 		//std::cout << "Response: " << response << std::endl;
 		// send response - chunked writing based on buffer size
 		//std::cout << "fd: " << fd << std::endl;
@@ -207,9 +214,11 @@ void	Connection::send_response() {
 			throw(std::exception());
 		} else {
 			if (n == response.size()) {
-				//std::cout << "Response delivered. YAY!!!" << std::endl;
+				std::cout << "Response delivered. YAY!!!" << std::endl;
 			}
 		}
+	} else {
+		std::cout << "Response is still empty right now" << std::endl;
 	}
 }
 

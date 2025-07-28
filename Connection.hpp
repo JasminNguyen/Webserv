@@ -28,6 +28,9 @@ class Connection {
 		int										&get_port();
 		std::string								&get_host();
 
+		void									setPort(int port);
+		void									setHost(std::string host);
+
 		void									handle_socket_event(Webserver &webserver, pollfd &poll);
 		void									handle_source_event(Webserver &webserver, pollfd &poll);
 		void									add_server(std::vector<configParser::ServerConfig>::iterator it);
