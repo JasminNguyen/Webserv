@@ -71,7 +71,7 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
         } 
         else
         {
-            throw Exceptions("Syntax error: opening bracket missing!\n");
+            throw Exceptions("Syntax error: opening bracket missing in location block!\n");
         }
         i++;
         if(tokens[i] == "}")
@@ -85,10 +85,10 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
 int configParser::parse_server_block(std::vector<std::string> &tokens)
 {
     size_t i = 0;
-    
     while(i < tokens.size())
     {
         ServerConfig currentServer;
+     
         if(tokens[i] == "server" && tokens[i + 1] == "{")
         {
             while(i < tokens.size() && tokens[i] != "}")
@@ -114,6 +114,12 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
                     currentServer.client_max_body_size = atoi(tokens[++i].c_str());
                     i++;
                 }
+                else if(tokens[i] == "error_page")
+                {
+                    currentServer.error_code = atoi(tokens[++i].c_str());
+                    currentServer.path_error_page = tokens[++i];
+                    currentServer.error_pages_map[currentServer.error_code] = currentServer.path_error_page; //put it in map
+                }
                 else if(tokens[i] == "location")
                 {
                     parse_location_block(tokens, i, currentServer);
@@ -127,11 +133,12 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
         }
         else
         {
-            throw Exceptions("Syntax error: opening bracket missing!\n");
+            throw Exceptions("Syntax error: opening bracket missing in server block!\n");
         }
         i++;
        
-    }
+    } 
+   
     return 0;
 }
 

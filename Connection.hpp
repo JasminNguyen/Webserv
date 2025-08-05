@@ -50,6 +50,7 @@ class Connection {
 		void									accept_request(Webserver &webserv);
 		void									handle_request(Webserver &webserv);
 		void									send_response();
+		void									generate_error_page(int error_code, configParser::ServerConfig& server);
 
 };
 

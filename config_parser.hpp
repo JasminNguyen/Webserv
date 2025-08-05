@@ -28,6 +28,9 @@ class configParser
         std::string server_name;
         std::string root;
         int client_max_body_size;
+        int error_code;
+        std::string path_error_page;
+        std::map<int, std::string> error_pages_map;
 
         ServerConfig(): client_max_body_size(0){}
 
