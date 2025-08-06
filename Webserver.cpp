@@ -32,11 +32,11 @@ std::vector<pollfd>	&Webserver::get_polls() {
 	return this->_polls;
 }
 
-std::map<Source, Connection>	&Webserver::get_source_map() {
+std::map<Source *, Connection *>	&Webserver::get_source_map() {
 	return this->_source_map;
 }
 
-void	Webserver::add_to_source_map(Source key, Connection value) {
+void	Webserver::add_to_source_map(Source *key, Connection *value) {
 	this->_source_map[key] = value;
 }
 
@@ -108,9 +108,9 @@ Connection	*Webserver::find_triggered_socket(pollfd &poll) {
 }
 
 Connection	*Webserver::find_triggered_source(pollfd &poll) {
-	for (std::map<Source, Connection>::iterator it = this->_source_map.begin(); it != this->_source_map.end(); it++) {
-		if (it->first.get_fd() == poll.fd) {
-			return &(it->second);
+	for (std::map<Source *, Connection *>::iterator it = this->_source_map.begin(); it != this->_source_map.end(); it++) {
+		if (it->first->get_fd() == poll.fd) {
+			return it->second;
 		}
 	}
 	return NULL;
@@ -136,21 +136,23 @@ void	Webserver::launch() {
 			std::cerr << "Issue with poll" << std::endl;
 			throw(std::exception());
 		}
-		for (std::vector<pollfd>::iterator poll = this->_polls.begin();
-		poll != this->_polls.end() && n > 0; poll++) {
-			if (poll->revents & POLLIN || poll->revents & POLLOUT) {
-				con = this->find_triggered_socket(*poll);
+		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
+			if (this->_polls[i].revents & POLLIN || this->_polls[i].revents & POLLOUT) {
+				con = this->find_triggered_socket(this->_polls[i]);
 				if (con) {
-					con->handle_socket_event(*this, *poll);
+					con->handle_socket_event(*this, this->_polls[i]);
+					i++;
 				} else {
-					con = this->find_triggered_source(*poll);
+					con = this->find_triggered_source(this->_polls[i]);
 					if (con) {
-						con->handle_source_event(*this, *poll);
+						con->handle_source_event(*this, this->_polls[i]);
 					} else {
 						std::cout << "We shouldn't get here" << std::endl;
 					}
 				}
 				n--;
+			} else {
+				i++;
 			}
 		}
 	}

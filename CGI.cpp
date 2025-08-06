@@ -212,7 +212,8 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
    //put out_pipe in Source-Connection map so that we know which CGI response belongs to which client
 
     conn.get_source().set_fd(out_pipe[0]);
-    webserver.get_source_map()[conn.get_source()] = conn;
+    webserver.add_to_source_map(&(conn.get_source()), &conn);
+    //webserver.get_source_map()[&(conn.get_source())] = &conn;
     //should we maybe use pointers in the map instead of references here? -> ask Marc
 
 
