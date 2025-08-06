@@ -177,6 +177,7 @@ void	Connection::handle_request(Webserver &webserv) {
 	}
 	if (n < 1024) {
 		std::cout << "We are parsing the request" << std::endl;
+		std::cout << std::endl << this->_request.get_raw() << std::endl;
 		this->_request.parse();
 	}
 	// create response
