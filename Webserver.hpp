@@ -23,6 +23,7 @@ class Webserver {
 		std::map<Source *, Connection *>		&get_source_map();
 
 		void									add_to_source_map(Source *key, Connection *value);
+		void									remove_from_source_map(Source *key);
 
 		void									launch();
 		void									parse_config(const char *config_file);
@@ -31,6 +32,8 @@ class Webserver {
 
 		void									add_connection_to_poll(int fd);
 		void									remove_from_poll(int fd);
+
+		void									remove_connection(Connection *con);
 
 	private:
 

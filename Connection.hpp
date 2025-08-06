@@ -31,8 +31,8 @@ class Connection {
 		void									setPort(int port);
 		void									setHost(std::string host);
 
-		void									handle_socket_event(Webserver &webserver, pollfd &poll);
-		void									handle_source_event(Webserver &webserver, pollfd &poll);
+		int										handle_socket_event(Webserver &webserver, pollfd &poll);
+		int										handle_source_event(Webserver &webserver, pollfd &poll);
 		void									add_server(std::vector<configParser::ServerConfig>::iterator it);
 		configParser::ServerConfig				&match_location_block(); //finds the right server block or location to serve our static file or cgi
 
@@ -49,7 +49,7 @@ class Connection {
 
 		void									accept_request(Webserver &webserv);
 		void									handle_request(Webserver &webserv);
-		void									send_response();
+		int										send_response(Webserver &webserv);
 		void									generate_error_page(int error_code, configParser::ServerConfig& server);
 
 };

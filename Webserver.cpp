@@ -40,6 +40,10 @@ void	Webserver::add_to_source_map(Source *key, Connection *value) {
 	this->_source_map[key] = value;
 }
 
+void	Webserver::remove_from_source_map(Source *key) {
+	this->_source_map.erase(key);
+}
+
 void	Webserver::populate() {
 	populate_socket_connections();
 	create_polls();
@@ -126,6 +130,15 @@ void	Webserver::remove_from_poll(int fd) {
 	}
 }
 
+void	Webserver::remove_connection(Connection *con) {
+	for (std::vector<Connection>::iterator it = this->_connections.begin(); it != this->_connections.end(); it++) {
+		if (con == &(*it)) {
+			this->_connections.erase(it);
+			return ;
+		}
+	}
+}
+
 /* run poll to detect incoming requests on all sockets and perform action */
 void	Webserver::launch() {
 	Connection	*con;
@@ -140,14 +153,16 @@ void	Webserver::launch() {
 			if (this->_polls[i].revents & POLLIN || this->_polls[i].revents & POLLOUT) {
 				con = this->find_triggered_socket(this->_polls[i]);
 				if (con) {
-					con->handle_socket_event(*this, this->_polls[i]);
-					i++;
+					if (con->handle_socket_event(*this, this->_polls[i])) {
+						this->remove_connection(con);
+					} else {
+						i++;
+					}
 				} else {
 					con = this->find_triggered_source(this->_polls[i]);
 					if (con) {
-						con->handle_source_event(*this, this->_polls[i]);
-					} else {
-						std::cout << "We shouldn't get here" << std::endl;
+						if (con->handle_source_event(*this, this->_polls[i]) == 0)
+							i++;
 					}
 				}
 				n--;
