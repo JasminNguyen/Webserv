@@ -2,7 +2,7 @@
 # define CONFIG_PARSER_HPP
 
 # include <iostream>
-
+# include "webserv.hpp"
 
 
 class configParser
