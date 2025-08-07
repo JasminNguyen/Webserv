@@ -284,24 +284,25 @@ configParser::ServerConfig& Connection::match_location_block()
 	// 4. find the right location (if there are any) and match it with the request target
 	/*has to be the longest matching location*/
 	std::string script_path;
+	std::string target_uri = _request.get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"
+
+	//bool match_found = false;
+
+	//remove query string
+	std::size_t pos_question_mark = target_uri.find('?');
+	std::string clean_uri;
+	if(pos_question_mark != std::string::npos)
+	{
+		clean_uri = target_uri.substr(0, pos_question_mark);
+	}
+	else
+	{
+		clean_uri = target_uri;
+	}
+
 	if(!matched_server->locations.empty()) //check if there are locations
 	{
 		std::vector<configParser::LocationConfig> locations_in_question = matched_server->locations;
-		std::string target_uri = _request.get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"
-
-		//bool match_found = false;
-
-		//remove query string
-		std::size_t pos_question_mark = target_uri.find('?');
-		std::string clean_uri;
-		if(pos_question_mark != std::string::npos)
-		{
-			clean_uri = target_uri.substr(0, pos_question_mark);
-		}
-		else
-		{
-			clean_uri = target_uri;
-		}
 
 		//going through locations of the respective server block
 		size_t best_len = 0;
@@ -337,6 +338,11 @@ configParser::ServerConfig& Connection::match_location_block()
 			// _response->set_body("Not Found");
 			throw std::runtime_error("No match found in location blocks");
 		}
+
+	}
+	else //if there are no locations -> we still have to construct the script_path
+	{
+		script_path = matched_server->root + clean_uri;
 
 	}
 	return *(matched_server);
