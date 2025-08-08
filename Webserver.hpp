@@ -46,8 +46,10 @@ class Webserver {
 		void									create_polls();
 		std::vector<Connection>::iterator		_connection_exists(std::vector<configParser::ServerConfig>::iterator it);
 
-		Connection								*find_triggered_socket(pollfd &poll);
-		Connection								*find_triggered_source(pollfd &poll);
+		Connection 								*get_triggered_connection(int poll_fd);
+		Connection								*find_triggered_socket(int poll_fd);
+		Connection								*find_triggered_source(int poll_fd);
+		int										event_router(Connection *con, pollfd poll);
 
 };
 

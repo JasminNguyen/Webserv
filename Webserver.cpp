@@ -101,19 +101,19 @@ void	Webserver::add_connection_to_poll(int fd) {
 
 /* return connection instance that was triggered
 to then handle request or send response */
-Connection	*Webserver::find_triggered_socket(pollfd &poll) {
+Connection	*Webserver::find_triggered_socket(int poll_fd) {
 	for (std::vector<Connection>::iterator con = this->_connections.begin();
 	con != this->_connections.end(); con++) {
-		if (con->get_socket().get_fd() == poll.fd) {
+		if (con->get_socket().get_fd() == poll_fd) {
 			return &(*con);
 		}
 	}
 	return NULL;
 }
 
-Connection	*Webserver::find_triggered_source(pollfd &poll) {
+Connection	*Webserver::find_triggered_source(int poll_fd) {
 	for (std::map<Source *, Connection *>::iterator it = this->_source_map.begin(); it != this->_source_map.end(); it++) {
-		if (it->first->get_fd() == poll.fd) {
+		if (it->first->get_fd() == poll_fd) {
 			return it->second;
 		}
 	}
@@ -139,6 +139,45 @@ void	Webserver::remove_connection(Connection *con) {
 	}
 }
 
+Connection *Webserver::get_triggered_connection(int poll_fd) {
+	Connection *con;
+
+	con = this->find_triggered_socket(poll_fd);
+	if (!con) {
+		con = this->find_triggered_source(poll_fd);
+	}
+	if (!con) {
+		std::cout << "ERROR!!!" << std::endl;
+	}
+	return con;
+}
+
+int	Webserver::event_router(Connection *con, pollfd poll) {
+	if (con->listeningSocketTriggered(poll.fd)) {
+		con->accept_request(*this);
+		return 1;
+	} else if (con->clientRequestIncoming(poll)) {
+		con->handle_request(*this);
+		return 1;
+	} else if (con->clientExpectingResponse(poll)) {
+		if (con->send_response(*this)) {
+			this->remove_connection(con);
+			return 0;
+		} else {
+			return 1;
+		}
+	} else if (con->sourceTriggered(poll.fd)) {
+		if (con->read_from_source(*this, poll)) {
+			return 0;
+		} else {
+			return 1;
+		}
+	} else {
+		std::cout << "WHAAAAAAAAAT???" << std::endl;
+		throw(std::exception());
+	}
+}
+
 /* run poll to detect incoming requests on all sockets and perform action */
 void	Webserver::launch() {
 	Connection	*con;
@@ -151,7 +190,10 @@ void	Webserver::launch() {
 		}
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
 			if (this->_polls[i].revents & POLLIN || this->_polls[i].revents & POLLOUT) {
-				con = this->find_triggered_socket(this->_polls[i]);
+				pollfd poll = this->_polls[i];
+				con = this->get_triggered_connection(poll.fd);
+				i += this->event_router(con, poll);
+				/*con = this->find_triggered_socket(this->_polls[i].fd);
 				if (con) {
 					if (con->handle_socket_event(*this, this->_polls[i])) {
 						this->remove_connection(con);
@@ -159,12 +201,12 @@ void	Webserver::launch() {
 						i++;
 					}
 				} else {
-					con = this->find_triggered_source(this->_polls[i]);
+					con = this->find_triggered_source(this->_polls[i].fd);
 					if (con) {
 						if (con->handle_source_event(*this, this->_polls[i]) == 0)
 							i++;
 					}
-				}
+				} */
 				n--;
 			} else {
 				i++;
