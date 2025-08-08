@@ -104,7 +104,7 @@ int	Connection::handle_socket_event(Webserver &webserv, pollfd &poll) {
 }
 
 /* read from connection source and append to connection response */
-int	Connection::handle_source_event(Webserver &webserver, pollfd &poll) {
+int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 	char buf[1024];
 	int src_fd = this->_source.get_fd();
 
@@ -196,6 +196,7 @@ void	Connection::handle_request(Webserver &webserv) {
 			// check if file exists
 			// check if file is readable
 			// different error pages if file not readable or doesn't exist?
+		std::cout << "target: " << this->_request.get_target() << std::endl;
 		this->match_location_block();
 		//std::cout << "target: " << this->_request.get_target() << std::endl;
 		//this->_source.set_path("./content/test.html");
@@ -346,4 +347,45 @@ configParser::ServerConfig& Connection::match_location_block()
 
 	}
 	return *(matched_server);
+}
+
+bool	Connection::listeningSocketTriggered(int poll_fd) {
+	int socket_fd = this->get_socket().get_fd();
+	std::string socket_type = this->get_socket().get_type();
+
+	if (socket_fd == poll_fd && socket_type == "Listening Socket") {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool	Connection::clientRequestIncoming(pollfd poll) {
+	int socket_fd = this->get_socket().get_fd();
+
+	if (socket_fd == poll.fd && poll.revents & POLLIN) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool	Connection::clientExpectingResponse(pollfd poll) {
+	int socket_fd = this->get_socket().get_fd();
+
+	if (socket_fd == poll.fd && poll.revents & POLLOUT) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool	Connection::sourceTriggered(int poll_fd) {
+	int socket_fd = this->get_socket().get_fd();
+
+	if (socket_fd != poll_fd) {
+		return true;
+	} else {
+		return false;
+	}
 }

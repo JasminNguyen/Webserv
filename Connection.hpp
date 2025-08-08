@@ -32,9 +32,16 @@ class Connection {
 		void									setHost(std::string host);
 
 		int										handle_socket_event(Webserver &webserver, pollfd &poll);
-		int										handle_source_event(Webserver &webserver, pollfd &poll);
+		int										read_from_source(Webserver &webserver, pollfd &poll);
 		void									add_server(std::vector<configParser::ServerConfig>::iterator it);
 		configParser::ServerConfig				&match_location_block(); //finds the right server block or location to serve our static file or cgi
+		bool									listeningSocketTriggered(int poll_fd);
+		bool									clientRequestIncoming(pollfd poll);
+		bool									clientExpectingResponse(pollfd poll);
+		bool									sourceTriggered(int poll_fd);
+		void									accept_request(Webserver &webserv);
+		void									handle_request(Webserver &webserv);
+		int										send_response(Webserver &webserv);
 
 	private:
 
@@ -46,10 +53,6 @@ class Connection {
 		int										_port;
 		std::string								_host;
 
-
-		void									accept_request(Webserver &webserv);
-		void									handle_request(Webserver &webserv);
-		int										send_response(Webserver &webserv);
 		void									generate_error_page(int error_code, configParser::ServerConfig& server);
 
 };
