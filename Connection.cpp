@@ -164,6 +164,58 @@ void	Connection::accept_request(Webserver &webserv) {
 	webserv.add_connection_to_poll(new_fd);
 }
 
+
+
+std::string	Connection::generate_directory_listing(std::string &file_path)
+{
+		//open directory
+		DIR *d;
+		d = opendir(file_path.c_str());
+		if(!d)
+		{
+			return "<html><body><h1>Unable to open directory</h1></body></html>";
+		}
+		//putting response together
+		std::stringstream html;
+		html << "<html><head><title>Index of " << file_path << "</title></head><body>";
+		html << "<h1>Index of " << file_path << "</h1>";
+		html << "<ul>";
+		struct dirent *entry;
+
+      	while ((entry = readdir(d)) != NULL) 
+		{
+        	html << " \n" << entry->d_name; //print all directory name
+			html << "<li><a href=\"" << entry->d_name << "\">" << entry->d_name << "</a></li>";
+      	}
+		html << "</ul></body></html>";
+      	closedir(d); //close directory
+		return html.str(); //return what I just put together
+}
+
+
+void	Connection::setLocationBlockIndex(int location_block_index)
+{
+	this->_location_block_index = location_block_index;
+
+}
+
+int&	Connection::get_location_block_index()
+{
+		return this->_location_block_index;
+}
+
+int		Connection::has_index_file(const std::string& dir_path, const std::string& index_file_name) 
+{
+    struct stat st;
+    std::string index_file_path = dir_path + "/" + index_file_name;
+
+    // Check if it exists and is a regular file
+    if (stat(index_file_path.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
+        return 1;
+    }
+    return 0;
+}
+
 /* read and process request to produce response */
 void	Connection::handle_request(Webserver &webserv) {
 	char buf[1024];
@@ -197,27 +249,66 @@ void	Connection::handle_request(Webserver &webserv) {
 			// check if file is readable
 			// different error pages if file not readable or doesn't exist?
 		std::cout << "target: " << this->_request.get_target() << std::endl;
-		this->match_location_block();
+		configParser::ServerConfig& server = this->match_location_block(); // ------ MODIFIED
 		//std::cout << "target: " << this->_request.get_target() << std::endl;
 		//this->_source.set_path("./content/test.html");
 		std::string file_path = this->_source.get_path();
 		if (access(file_path.c_str() , R_OK) == -1) {
-			std::cerr << "File doesn't exist or isn't readable." << std::endl;
-		} else {
-			// open file
-			int fd = open(file_path.c_str(), O_RDONLY);
-			if (fd == -1) {
-				std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
+			std::cerr << "File/directory doesn't exist or isn't readable." << std::endl; // ------- MODIFIED
+			if (errno == EACCES)	 // ------- ADDED
+				generate_error_page(403, server); //no permissions
+			else if (errno == ENOENT)
+				generate_error_page(404, server); //doesn't exist
+			else
+				generate_error_page(500, server); //internal server error
+		} 
+		else 
+		{
+			struct stat st;
+			if (stat(file_path.c_str(), &st) == 0) //WHAT IS IT?
+			{
+				if (S_ISDIR(st.st_mode)) // It's a directory
+				{
+					//check if there is an index file in the directory
+					if(has_index_file(file_path, "index.html") == 1)
+					{
+						//serve index file
+					}
+					else //no index file -> check if autoindex is on
+					{
+						if(!server.locations.empty() && server.locations[this->get_location_block_index()].autoindex == 1) 
+						{
+							//generate directory listing
+							std::string directory_listing_html = this->generate_directory_listing(file_path); //where do I put the return value
+							this->_response.set_body(directory_listing_html); //CORRECT????
+						}
+						else //autoindex off
+						{
+							generate_error_page(403, server);
+						}
+					}
+				} 
+				else // It's a file
+				{
+					// open file
+					int fd = open(file_path.c_str(), O_RDONLY);
+					if (fd == -1) {
+						std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
+					}
+					this->_source.set_fd(fd);
+					// add fd and connection to map
+					webserv.add_to_source_map(&(this->_source), this);
+					// add poll instance to poll vector
+					webserv.add_connection_to_poll(fd);
+					std::cout << "Opening static file has worked." << std::endl;
+				}
 			}
-			this->_source.set_fd(fd);
-			// add fd and connection to map
-			webserv.add_to_source_map(&(this->_source), this);
-			// add poll instance to poll vector
-			webserv.add_connection_to_poll(fd);
-			std::cout << "Opening static file has worked." << std::endl;
 		}
 	}
 }
+
+
+
 
 /* if response != "", send to client */
 int	Connection::send_response(Webserver &webserv) {
@@ -287,8 +378,6 @@ configParser::ServerConfig& Connection::match_location_block()
 	std::string script_path;
 	std::string target_uri = _request.get_target(); //  something like this "/cgi-bin/foo.py?querypahtk"
 
-	//bool match_found = false;
-
 	//remove query string
 	std::size_t pos_question_mark = target_uri.find('?');
 	std::string clean_uri;
@@ -307,9 +396,11 @@ configParser::ServerConfig& Connection::match_location_block()
 
 		//going through locations of the respective server block
 		size_t best_len = 0;
+		int best_index = SIZE_MAX;
+		size_t idx = 0;
 		configParser::LocationConfig* best_location = NULL;
 
-		for(std::vector<configParser::LocationConfig>::iterator it = locations_in_question.begin(); it != locations_in_question.end(); it++)
+		for(std::vector<configParser::LocationConfig>::iterator it = locations_in_question.begin(); it != locations_in_question.end(); it++, idx++)
 		{
 			// Try to find best location match (longest prefix match)
 			std::string location_path = it->path;
@@ -320,6 +411,7 @@ configParser::ServerConfig& Connection::match_location_block()
 				{
 					best_len = location_path.length();
 					best_location = &(*it);
+					best_index = idx;
 				}
 			}
 		}
@@ -330,7 +422,7 @@ configParser::ServerConfig& Connection::match_location_block()
 			std::string relative_path = clean_uri.substr(best_location->path.length()); //start wher best_location ends until the end of the clean_uri and make a substring out of it
 			script_path = best_location->root + relative_path;
 			_source.set_path(script_path); //setting the constructed script path in Source
-			//match_found = true;
+			this->setLocationBlockIndex(idx); //setting the location block index (needed in handle_request)
 		}
 		else
 		{
