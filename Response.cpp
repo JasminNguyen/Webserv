@@ -55,6 +55,18 @@ std::string	&Response::get_body() {
 	return this->_body;
 }
 
+void	Response::set_status_code(std::string s) {
+	this->_status_code = s;
+}
+
+void	Response::set_status_string(std::string s) {
+	this->_status_string = s;
+}
+
+void	Response::set_body(std::string s) {
+	this->_body = s;
+}
+
 void	Response::assemble() {
 
 	this->_add_status_line();

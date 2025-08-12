@@ -1,5 +1,5 @@
 NAME        = webserv
-SRC         = main2.cpp config_parser.cpp helper_functions.cpp Exceptions.cpp \
+SRC         = main2.cpp config_parser.cpp helper_functions.cpp Errors.cpp Exceptions.cpp \
 				CGI.cpp CGISource.cpp Connection.cpp ListeningSocket.cpp \
 				Request.cpp Response.cpp Socket.cpp Source.cpp StaticSource.cpp \
 				Webserver.cpp

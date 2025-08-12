@@ -182,7 +182,7 @@ std::string	Connection::generate_directory_listing(std::string &file_path)
 		html << "<ul>";
 		struct dirent *entry;
 
-      	while ((entry = readdir(d)) != NULL) 
+      	while ((entry = readdir(d)) != NULL)
 		{
         	html << " \n" << entry->d_name; //print all directory name
 			html << "<li><a href=\"" << entry->d_name << "\">" << entry->d_name << "</a></li>";
@@ -204,7 +204,7 @@ int&	Connection::get_location_block_index()
 		return this->_location_block_index;
 }
 
-int		Connection::has_index_file(const std::string& dir_path, const std::string& index_file_name) 
+int		Connection::has_index_file(const std::string& dir_path, const std::string& index_file_name)
 {
     struct stat st;
     std::string index_file_path = dir_path + "/" + index_file_name;
@@ -253,55 +253,66 @@ void	Connection::handle_request(Webserver &webserv) {
 		//std::cout << "target: " << this->_request.get_target() << std::endl;
 		//this->_source.set_path("./content/test.html");
 		std::string file_path = this->_source.get_path();
-		if (access(file_path.c_str() , R_OK) == -1) {
-			std::cerr << "File/directory doesn't exist or isn't readable." << std::endl; // ------- MODIFIED
-			if (errno == EACCES)	 // ------- ADDED
-				generate_error_page(403, server); //no permissions
-			else if (errno == ENOENT)
-				generate_error_page(404, server); //doesn't exist
-			else
-				generate_error_page(500, server); //internal server error
-		} 
-		else 
-		{
-			struct stat st;
-			if (stat(file_path.c_str(), &st) == 0) //WHAT IS IT?
-			{
-				if (S_ISDIR(st.st_mode)) // It's a directory
+		std::cout << "file path: " << file_path << std::endl;
+
+		struct stat st;
+		if (stat(file_path.c_str(), &st) == 0) {
+			if (S_ISDIR(st.st_mode)) {
+				std::cout << "should be a directory." << std::endl;
+				//check if there is an index file in the directory
+				if(has_index_file(file_path, "index.html") == 1)
 				{
-					//check if there is an index file in the directory
-					if(has_index_file(file_path, "index.html") == 1)
-					{
-						//serve index file
-					}
-					else //no index file -> check if autoindex is on
-					{
-						if(!server.locations.empty() && server.locations[this->get_location_block_index()].autoindex == 1) 
-						{
-							//generate directory listing
-							std::string directory_listing_html = this->generate_directory_listing(file_path); //where do I put the return value
-							this->_response.set_body(directory_listing_html); //CORRECT????
-						}
-						else //autoindex off
-						{
-							generate_error_page(403, server);
-						}
-					}
-				} 
-				else // It's a file
-				{
-					// open file
-					int fd = open(file_path.c_str(), O_RDONLY);
-					if (fd == -1) {
-						std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
-					}
-					this->_source.set_fd(fd);
-					// add fd and connection to map
-					webserv.add_to_source_map(&(this->_source), this);
-					// add poll instance to poll vector
-					webserv.add_connection_to_poll(fd);
-					std::cout << "Opening static file has worked." << std::endl;
+					//serve index file
+					file_path.append("/index.html");
 				}
+				else //no index file -> check if autoindex is on
+				{
+					if(!server.locations.empty() && server.locations[this->get_location_block_index()].autoindex == 1)
+					{
+						//generate directory listing
+						std::string directory_listing_html = this->generate_directory_listing(file_path); //where do I put the return value
+						this->_response.set_body(directory_listing_html); //CORRECT????
+						this->_response.set_status_code("200");
+						this->_response.set_status_string("OK");
+						// generate headers
+						return;
+					}
+					else //autoindex off
+					{
+						generate_error_page("403", server);
+						return;
+					}
+				}
+			}
+			if (access(file_path.c_str() , R_OK) == -1) {
+				std::cerr << "File doesn't exist or isn't readable." << std::endl; // ------- MODIFIED
+				if (errno == EACCES)	 // ------- ADDED
+					generate_error_page("403", server); //no permissions
+				else if (errno == ENOENT)
+					generate_error_page("404", server); //doesn't exist
+				else
+					generate_error_page("500", server); //internal server error
+			} else {
+				// open file
+				std::cout << "Am I a file?" << std::endl;
+				int fd = open(file_path.c_str(), O_RDONLY);
+				if (fd == -1) {
+					std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
+				}
+				this->_source.set_fd(fd);
+				// add fd and connection to map
+				webserv.add_to_source_map(&(this->_source), this);
+				// add poll instance to poll vector
+				webserv.add_connection_to_poll(fd);
+				std::cout << "Opening static file has worked." << std::endl;
+			}
+		} else {
+			// errno == ENOENT
+			// stat() return an error --> 404
+			if (errno == ENOENT) {
+				generate_error_page("404", server);
+			} else {
+				throw(std::runtime_error("stat fails but it's not 404. Let's have a look."));
 			}
 		}
 	}
@@ -396,7 +407,7 @@ configParser::ServerConfig& Connection::match_location_block()
 
 		//going through locations of the respective server block
 		size_t best_len = 0;
-		int best_index = SIZE_MAX;
+		int best_index = INT_MAX;
 		size_t idx = 0;
 		configParser::LocationConfig* best_location = NULL;
 
@@ -422,7 +433,7 @@ configParser::ServerConfig& Connection::match_location_block()
 			std::string relative_path = clean_uri.substr(best_location->path.length()); //start wher best_location ends until the end of the clean_uri and make a substring out of it
 			script_path = best_location->root + relative_path;
 			_source.set_path(script_path); //setting the constructed script path in Source
-			this->setLocationBlockIndex(idx); //setting the location block index (needed in handle_request)
+			this->setLocationBlockIndex(best_index); //setting the location block index (needed in handle_request)
 		}
 		else
 		{

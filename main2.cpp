@@ -3,7 +3,7 @@
 
 int main(int argc, char **argv) {
     const char *config_file;
-    std::string default_file = "./config/default.conf";
+    std::string default_file = "./config.conf";
 
     if (argc == 2) {
         config_file = argv[1];

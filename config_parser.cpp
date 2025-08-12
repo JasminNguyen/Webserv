@@ -31,7 +31,7 @@ std::ostream& operator<<(std::ostream& os, const configParser::ServerConfig& con
 
 int configParser::parse_location_block(std::vector<std::string> &tokens, size_t &i, ServerConfig &currentServer)
 {
-    
+
     while(i < tokens.size())
     {
         LocationConfig currentLocation;
@@ -59,16 +59,16 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
                         currentLocation.allowed_methods.push_back(tokens[++i]);
                     }
                     i++;
-                    
+
                 }
                 else
                 {
                     i++;
                 }
-                
+
             }
             currentServer.locations.push_back(currentLocation);
-        } 
+        }
         else
         {
             throw Exceptions("Syntax error: opening bracket missing in location block!\n");
@@ -79,7 +79,7 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
             break;
         }
     }
-    
+
     return 0;
 }
 int configParser::parse_server_block(std::vector<std::string> &tokens)
@@ -88,7 +88,7 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
     while(i < tokens.size())
     {
         ServerConfig currentServer;
-     
+
         if(tokens[i] == "server" && tokens[i + 1] == "{")
         {
             while(i < tokens.size() && tokens[i] != "}")
@@ -136,9 +136,9 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
             throw Exceptions("Syntax error: opening bracket missing in server block!\n");
         }
         i++;
-       
-    } 
-   
+
+    }
+
     return 0;
 }
 
@@ -149,16 +149,16 @@ std::vector<std::string> configParser::tokenize(std::string config_file)
     std::ifstream file(config_file);//opening the file
     std::string line;
     std::string token;
-    
+
     while(getline(file, line))
     {
         std::istringstream ss(line);
         while(ss >> token)
         {
             size_t i = 0;
-            while (i < token.length()) 
+            while (i < token.length())
             {
-                if (token[i] == '{' || token[i] == '}' || token[i] == ';' || token[i] == ':') 
+                if (token[i] == '{' || token[i] == '}' || token[i] == ';' || token[i] == ':')
                 {
                     if (i > 0)
                     {
@@ -167,13 +167,13 @@ std::vector<std::string> configParser::tokenize(std::string config_file)
                     tokens.push_back(std::string(1, token[i])); // -> ";" -> creating a string of size of 1 with the character at the end (;, } or {})
                     token = token.substr(i + 1); // chop off what we just processed so we can start from whatever is after the character
                     i = 0; // restart from beginning of new token
-                } 
-                else 
+                }
+                else
                 {
                     ++i;
                 }
-               
-            } 
+
+            }
             if (!token.empty())
                 tokens.push_back(token); // push what remains!
         }

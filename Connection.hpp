@@ -44,7 +44,7 @@ class Connection {
 		void									accept_request(Webserver &webserv);
 		void									handle_request(Webserver &webserv);
 		int										send_response(Webserver &webserv);
-		void									generate_error_page(int error_code, configParser::ServerConfig& server);
+		void									generate_error_page(std::string error_code, configParser::ServerConfig& server);
 		int										has_index_file(const std::string& dir_path, const std::string& index_file_name);
 		std::string								generate_directory_listing(std::string &file_path);
 
