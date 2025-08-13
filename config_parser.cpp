@@ -69,10 +69,6 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
             }
             currentServer.locations.push_back(currentLocation);
         }
-        else
-        {
-            throw Exceptions("Syntax error: opening bracket missing in location block!\n");
-        }
         i++;
         if(tokens[i] == "}")
         {
@@ -131,10 +127,6 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
             }
             serverConfigVector.push_back(currentServer);
         }
-        else
-        {
-            throw Exceptions("Syntax error: opening bracket missing in server block!\n");
-        }
         i++;
 
     }
@@ -149,6 +141,8 @@ std::vector<std::string> configParser::tokenize(std::string config_file)
     std::ifstream file(config_file);//opening the file
     std::string line;
     std::string token;
+    int opening_brackets = 0;
+    int closing_brackets = 0;
 
     while(getline(file, line))
     {
@@ -165,6 +159,15 @@ std::vector<std::string> configParser::tokenize(std::string config_file)
                         tokens.push_back(token.substr(0, i));  // -> "8080"
                     }
                     tokens.push_back(std::string(1, token[i])); // -> ";" -> creating a string of size of 1 with the character at the end (;, } or {})
+
+                    if(token[i] == '{')
+                    {
+                        opening_brackets++;
+                    }
+                    else if(token[i] == '}')
+                    {
+                        closing_brackets++;
+                    }
                     token = token.substr(i + 1); // chop off what we just processed so we can start from whatever is after the character
                     i = 0; // restart from beginning of new token
                 }
@@ -177,6 +180,10 @@ std::vector<std::string> configParser::tokenize(std::string config_file)
             if (!token.empty())
                 tokens.push_back(token); // push what remains!
         }
+    }
+    if(opening_brackets != closing_brackets)
+    {
+        throw Exceptions("Syntax error: bracket mismatch!\n");
     }
     return tokens;
 
