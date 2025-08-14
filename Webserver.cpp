@@ -95,7 +95,7 @@ void	Webserver::create_polls() {
 void	Webserver::add_connection_to_poll(int fd) {
 	struct pollfd	poll;
 	poll.fd = fd;
-	poll.events = POLLIN | POLLOUT; // which events do we need to track ???
+	poll.events = POLLIN; // which events do we need to track ???
 	this->_polls.push_back(poll);
 }
 
@@ -157,11 +157,17 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 		con->accept_request(*this);
 		return 1;
 	} else if (con->clientRequestIncoming(poll)) {
+		std::cout << "POLLIN with fd: " << poll.fd << std::endl;
 		con->handle_request(*this);
 		return 1;
 	} else if (con->clientExpectingResponse(poll)) {
+		std::cout << "POLLOUT with fd: " << poll.fd << std::endl;
+		std::cout << "poll revents: " << poll.revents << std::endl;
 		if (con->send_response(*this)) {
-			this->remove_connection(con);
+			// if request has Connection: close
+			/*if ("Connection: close") {
+				this->remove_connection(con);
+			} */
 			return 0;
 		} else {
 			return 1;
@@ -222,4 +228,13 @@ void	Webserver::parse_config(const char *config_file) {
 	tokenVector = configParser.tokenize(config_file);
 	configParser.parse_server_block(tokenVector);
 	this->_config = configParser.serverConfigVector;
+}
+
+void Webserver::set_connection_socket_to_pollout(int fd) {
+	for (std::vector<pollfd>::iterator it = this->_polls.begin(); it != this->_polls.end(); it++) {
+		if (it->fd == fd) {
+			it->events = POLLOUT;
+			break;
+		}
+	}
 }

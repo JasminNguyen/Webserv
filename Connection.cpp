@@ -118,6 +118,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			this->_response.get_http_version() = "HTTP /1.1";
 			this->_response.get_status_code() = "200";
 			this->_response.get_status_string() = "OK";
+			this->_response.get_headers()["Connection"] = "close";
 			//this->_response.get_headers() = this->_request.get_headers();
 			// close source fd
 			close(src_fd);
@@ -127,13 +128,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			this->_response.assemble();
 			// remove pair from source map
 			webserver.remove_from_source_map(&(this->_source));
-			std::map<Source *, Connection *>::iterator its = webserver.get_source_map().find(&(this->_source));
-			if (its != webserver.get_source_map().end()) {
-				std::cout << "Found key, erasing.\n";
-				webserver.get_source_map().erase(its);
-			} else {
-				std::cout << "Key not found in _source_map!\n";
-			}
+			webserver.set_connection_socket_to_pollout(this->get_socket().get_fd());
 			return 1;
 		}
 	}
@@ -339,8 +334,13 @@ int	Connection::send_response(Webserver &webserv) {
 			} else {
 				std::cout << "Response not fully delivered." << std::endl;
 			}
-			close(fd);
-			webserv.remove_from_poll(fd);
+			// if request has Connection: close
+			/*if () {
+				close(fd);
+				webserv.remove_from_poll(fd);
+			} */
+			std::cout << "Response:" << std::endl << std::endl;
+			std::cout << response << std::endl;
 			return 1;
 			// remove connection (this) from webserv - is that possible right here?? We are in a method on that instance
 		}
