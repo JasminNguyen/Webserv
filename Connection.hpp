@@ -47,6 +47,7 @@ class Connection {
 		void									generate_error_page(std::string error_code, configParser::ServerConfig& server);
 		int										has_index_file(const std::string& dir_path, const std::string& index_file_name);
 		std::string								generate_directory_listing(std::string &file_path);
+		void									generate_redirection_response_from_server(configParser::ServerConfig& server);
 
 	private:
 

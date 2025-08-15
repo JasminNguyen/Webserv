@@ -61,6 +61,12 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
                     i++;
 
                 }
+                else if(tokens[i] == "return")
+                {
+                    currentLocation.path_redirection = tokens[i + 2];
+                   // std::cout << "path redirection: " << currentLocation.path_redirection << std::endl;
+                    i++;
+                }
                 else
                 {
                     i++;

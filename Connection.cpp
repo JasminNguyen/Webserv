@@ -229,6 +229,7 @@ void	Connection::handle_request(Webserver &webserv) {
 	}
 	// create response
 	std::string target = this->_request.get_target();
+	//MAYBE WE SHOULD DECIDE HERE WHETHER WE ARE DEALING WITH A REDIRECTION (CGI AND FILES CAN BE AFFECTED) -> MATCH_LOCATION BLOCK HERE.
 	if (target.size() >= 3 && target.substr(target.size() - 3).compare(".py") == 0) {
 		std::cout << "Hi from the if block to initiate CGI" << std::endl;
 		// static file or cgi
@@ -339,6 +340,7 @@ int	Connection::send_response(Webserver &webserv) {
 				close(fd);
 				webserv.remove_from_poll(fd);
 			} */
+			(void)webserv;
 			std::cout << "Response:" << std::endl << std::endl;
 			std::cout << response << std::endl;
 			return 1;
