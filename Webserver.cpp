@@ -95,7 +95,7 @@ void	Webserver::create_polls() {
 void	Webserver::add_connection_to_poll(int fd) {
 	struct pollfd	poll;
 	poll.fd = fd;
-	poll.events = POLLIN; // which events do we need to track ???
+	poll.events =  POLLIN | POLLOUT; // which events do we need to track ???
 	this->_polls.push_back(poll);
 }
 
@@ -141,12 +141,12 @@ void	Webserver::remove_connection(Connection *con) {
 
 Connection *Webserver::get_triggered_connection(int poll_fd) {
 	Connection *con;
-
 	con = this->find_triggered_socket(poll_fd);
 	if (!con) {
 		con = this->find_triggered_source(poll_fd);
 	}
 	if (!con) {
+		std::cout << "poll_fd is: " << poll_fd << std::endl;
 		std::cout << "ERROR!!!" << std::endl;
 	}
 	return con;
@@ -165,9 +165,10 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 		std::cout << "poll revents: " << poll.revents << std::endl;
 		if (con->send_response(*this)) {
 			// if request has Connection: close
-			/*if ("Connection: close") {
+			if (con->get_value_from_map("Connection") == "close") {
 				this->remove_connection(con);
-			} */
+			}
+			this->remove_connection(con);
 			return 0;
 		} else {
 			return 1;
@@ -230,10 +231,10 @@ void	Webserver::parse_config(const char *config_file) {
 	this->_config = configParser.serverConfigVector;
 }
 
-void Webserver::set_connection_socket_to_pollout(int fd) {
+void Webserver::set_connection_socket_events(int fd, unsigned int event) {
 	for (std::vector<pollfd>::iterator it = this->_polls.begin(); it != this->_polls.end(); it++) {
 		if (it->fd == fd) {
-			it->events = POLLOUT;
+			it->events = event;
 			break;
 		}
 	}

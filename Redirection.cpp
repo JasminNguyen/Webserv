@@ -12,6 +12,6 @@ void Connection::generate_redirection_response_from_server(configParser::ServerC
     response << "\r\n"; // end of headers (blank line, no body)
 
     //what I just put together needs to be added to the header of the response (no body needed). how will I do that though????? -> just in raw? -> SET_raw()????
-    this->get_response().get_raw(response.c_str());
+    this->get_response().set_raw(response.str());
 }
 //no generate_new_client_call() needed since the client automatically sends out a new request

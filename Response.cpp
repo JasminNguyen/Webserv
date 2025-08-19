@@ -55,6 +55,10 @@ std::string	&Response::get_body() {
 	return this->_body;
 }
 
+void	Response::set_raw(std::string s) {
+	this->_raw = s;
+}
+
 void	Response::set_status_code(std::string s) {
 	this->_status_code = s;
 }
@@ -68,11 +72,11 @@ void	Response::set_body(std::string s) {
 }
 
 void	Response::assemble() {
-
-	this->_add_status_line();
-	this->_add_headers();
-	this->_add_static_body();
-
+	if (this->_raw == "") {
+		this->_add_status_line();
+		this->_add_headers();
+		this->_add_static_body();
+	}
 	// How is dynamic body added? if else statement and adding functions missing
 
 }

@@ -22,6 +22,7 @@ class Response {
 		std::map<std::string, std::string>	&get_headers();
 		std::string							&get_body();
 
+		void								set_raw(std::string s);
 		void								set_status_code(std::string s);
 		void								set_status_string(std::string s);
 		void								set_body(std::string s);

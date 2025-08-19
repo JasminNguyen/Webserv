@@ -33,7 +33,7 @@ class Connection {
 		void									setHost(std::string host);
 		void									setLocationBlockIndex(int location_block_index);//ADDED BY JASMIN
 
-		int										handle_socket_event(Webserver &webserver, pollfd &poll);
+		// int										handle_socket_event(Webserver &webserver, pollfd &poll);
 		int										read_from_source(Webserver &webserver, pollfd &poll);
 		void									add_server(std::vector<configParser::ServerConfig>::iterator it);
 		configParser::ServerConfig				&match_location_block(); //finds the right server block or location to serve our static file or cgi
@@ -48,6 +48,8 @@ class Connection {
 		int										has_index_file(const std::string& dir_path, const std::string& index_file_name);
 		std::string								generate_directory_listing(std::string &file_path);
 		void									generate_redirection_response_from_server(configParser::ServerConfig& server);
+		std::string								get_value_from_map(std::string key);
+		void									reset_revents(Webserver &webserv, int fd);
 
 	private:
 
