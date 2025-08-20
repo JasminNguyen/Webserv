@@ -35,7 +35,8 @@ class Webserver {
 
 		void									remove_connection(Connection *con);
 
-		void 									set_connection_socket_events(int fd, unsigned int event);
+		void 									add_pollout_to_socket_events(int fd);
+		void									remove_pollout_from_socket_events(int fd);
 
 	private:
 

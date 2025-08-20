@@ -3,6 +3,8 @@
 #include <typeinfo>
 #include "ListeningSocket.hpp"
 #include "CGI.hpp"
+#include "Exceptions.hpp"
+
 
 Connection::Connection() {
 	//std::cout << "Connection default constructor called" << std::endl;
@@ -110,28 +112,43 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 
 	if (poll.revents & POLLIN) {
 		// read from source and pass into response instance
-		int n = read(src_fd, buf, 1024);
-		buf[n] = 0;
-		this->_response.get_body().append(buf);
-		if (n >= 0 && n < 1024) {
-			// generate response parts
-			this->_response.get_http_version() = "HTTP /1.1";
-			this->_response.get_status_code() = "200";
-			this->_response.get_status_string() = "OK";
-			if (this->get_value_from_map("Connection") == "close")
-				this->_response.get_headers()["Connection"] = "close";
-			//this->_response.get_headers() = this->_request.get_headers();
-			// close source fd
-			close(src_fd);
-			// remove fd from pollfd vector
-			webserver.remove_from_poll(src_fd);
-			std::cout << "How often???????????????????????" << std::endl;
-			this->_response.assemble();
-			// remove pair from source map
-			webserver.remove_from_source_map(&(this->_source));
-			// webserver.set_connection_socket_events(this->get_socket().get_fd(), POLLOUT);
-			return 1;
+		int n = 0;
+		while((n = read(src_fd, buf, 1024)) && n == 1024)
+		{
+			this->_response.get_body().append(buf);
 		}
+		if(n < 0)
+		{
+			throw Exceptions("Error: read failed in read_from_source\n");
+		}
+		else
+		{	
+			buf[n] = 0;
+			this->_response.get_body().append(buf);
+		}
+		
+		
+
+		// generate response parts
+		this->_response.get_http_version() = "HTTP /1.1";
+		this->_response.get_status_code() = "200";
+		this->_response.get_status_string() = "OK";
+		if (this->get_value_from_map("Connection") == "close")
+			this->_response.get_headers()["Connection"] = "close";
+		//generate headers
+		this->_response.get_headers()["Connection"] = "close";
+		//this->_response.get_headers() = this->_request.get_headers();
+		// close source fd
+		close(src_fd);
+		// remove fd from pollfd vector
+		webserver.remove_from_poll(src_fd);
+		std::cout << "How often???????????????????????" << std::endl;
+		this->_response.assemble();
+		// remove pair from source map
+		webserver.remove_from_source_map(&(this->_source));
+		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
+		return 1;
+		
 	}
 	return 0;/*else { // if POLLOUT
 		// chunk writing to source fd (cgi)
@@ -217,27 +234,30 @@ void	Connection::handle_request(Webserver &webserv) {
 	char buf[1024];
 	// read into this->_req->_raw
 	std::cout << "handle request on client socket" << std::endl;
-	size_t n = read(this->_sock.get_fd(), buf, sizeof(buf));
+	size_t n = 0;
+	while ((n = read(this->_sock.get_fd(), buf, sizeof(buf))) && n == 1024) {
+		this->_request.get_raw().append(buf);
+	}
 	if (n < 0) {
 		throw(std::exception());
 	} else { // difference between n == 0 and n > 0 ???
 		this->_request.get_raw().append(buf);
 	}
-	if (n < 1024) {
-		std::cout << "We are parsing the request" << std::endl;
-		std::cout << std::endl << this->_request.get_raw() << std::endl;
-		this->_request.parse();
-	}
+	std::cout << "We are parsing the request" << std::endl;
+	std::cout << std::endl << this->_request.get_raw() << std::endl;
+	this->_request.parse();
 	// create response
 	std::string target = this->_request.get_target();
 	//MAYBE WE SHOULD DECIDE HERE WHETHER WE ARE DEALING WITH A REDIRECTION (CGI AND FILES CAN BE AFFECTED) -> MATCH_LOCATION BLOCK HERE.
 	configParser::ServerConfig &server = this->match_location_block();
-	if(!server.locations.empty() && server.locations[this->_location_block_index].redirection_present)
+	if(!server.locations.empty() && server.locations[this->_location_block_index].redirection_present == 1)
 	{
 		this->generate_redirection_response_from_server(server);
-		this->send_response(webserv);
+		this->_response.assemble();
+		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 		return;
 	}
+	//CHECK FOR POST, GET, DELETE METHOD 
 
 	if (target.size() >= 3 && target.substr(target.size() - 3).compare(".py") == 0) {
 		std::cout << "Hi from the if block to initiate CGI" << std::endl;
@@ -279,11 +299,16 @@ void	Connection::handle_request(Webserver &webserv) {
 						this->_response.set_status_code("200");
 						this->_response.set_status_string("OK");
 						// generate headers
+						this->_response.assemble();
+						webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 						return;
 					}
 					else //autoindex off
 					{
 						generate_error_page("403", server);
+						//generate headers
+						this->_response.assemble();
+						webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 						return;
 					}
 				}
@@ -296,6 +321,10 @@ void	Connection::handle_request(Webserver &webserv) {
 					generate_error_page("404", server); //doesn't exist
 				else
 					generate_error_page("500", server); //internal server error
+				//generate headers
+				this->_response.assemble();
+				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				return;
 			} else {
 				// open file
 				std::cout << "Am I a file?" << std::endl;
@@ -315,6 +344,10 @@ void	Connection::handle_request(Webserver &webserv) {
 			// stat() return an error --> 404
 			if (errno == ENOENT) {
 				generate_error_page("404", server);
+				//generate headers
+				this->_response.assemble();
+				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				return;
 			} else {
 				throw(std::runtime_error("stat fails but it's not 404. Let's have a look."));
 			}
@@ -340,21 +373,20 @@ int	Connection::send_response(Webserver &webserv) {
 			throw(std::exception());
 		} else {
 			if (n == response.size()) {
-				
 				std::cout << "Response delivered. YAY!!!" << std::endl;
 			} else {
 				std::cout << "Response not fully delivered." << std::endl;
 			}
+			close(fd);
+			webserv.remove_from_poll(fd);
 			// if request has Connection: close"
 			if (this->get_value_from_map("Connection") == "close") {
 				close(fd);
 				webserv.remove_from_poll(fd);
 			} 
-			close(fd);
-			webserv.remove_from_poll(fd);
-			// else {
-			// 	webserv.set_connection_socket_events(fd, POLLIN);
-			// }
+			else {
+				webserv.remove_pollout_from_socket_events(fd);
+			}
 			//this->reset_revents(webserv, fd);
 			(void)webserv;
 			std::cout << "Response:" << std::endl << std::endl;

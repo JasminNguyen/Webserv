@@ -78,8 +78,11 @@ void	Request::parse() {
 		}
 	}
 
-	// PARSING THE BODY IS STILL MISSING
+	
 
+	// PARSING THE BODY IS STILL MISSING
+	
+	std::getline(ss, this->get_body(), '\0');
 	/* std::cout << "Method: " << this->_method << std::endl;
 	std::cout << "Target: " << this->_target << std::endl;
 	std::cout << "HTTP Version: " << this->_http_version << std::endl;

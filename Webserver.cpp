@@ -95,7 +95,7 @@ void	Webserver::create_polls() {
 void	Webserver::add_connection_to_poll(int fd) {
 	struct pollfd	poll;
 	poll.fd = fd;
-	poll.events =  POLLIN | POLLOUT; // which events do we need to track ???
+	poll.events =  POLLIN; // which events do we need to track ???
 	this->_polls.push_back(poll);
 }
 
@@ -168,7 +168,7 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 			if (con->get_value_from_map("Connection") == "close") {
 				this->remove_connection(con);
 			}
-			this->remove_connection(con);
+			//this->remove_connection(con);
 			return 0;
 		} else {
 			return 1;
@@ -231,10 +231,19 @@ void	Webserver::parse_config(const char *config_file) {
 	this->_config = configParser.serverConfigVector;
 }
 
-void Webserver::set_connection_socket_events(int fd, unsigned int event) {
+void Webserver::add_pollout_to_socket_events(int fd) {
 	for (std::vector<pollfd>::iterator it = this->_polls.begin(); it != this->_polls.end(); it++) {
 		if (it->fd == fd) {
-			it->events = event;
+			it->events |= POLLOUT;
+			break;
+		}
+	}
+}
+
+void Webserver::remove_pollout_from_socket_events(int fd) {
+	for (std::vector<pollfd>::iterator it = this->_polls.begin(); it != this->_polls.end(); it++) {
+		if (it->fd == fd) {
+			it->events = POLLIN;
 			break;
 		}
 	}
