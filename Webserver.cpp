@@ -168,7 +168,7 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 			if (con->get_value_from_map("Connection") == "close") {
 				this->remove_connection(con);
 			}
-			//this->remove_connection(con);
+			this->remove_connection(con);
 			return 0;
 		} else {
 			return 1;
@@ -214,10 +214,13 @@ void	Webserver::launch() {
 							i++;
 					}
 				} */
+				// add new time stamp
 				n--;
 			} else {
+				// check last activity - remove and don't iterate if idle for too long - only iterate if still active
 				i++;
 			}
+
 		}
 	}
 }
