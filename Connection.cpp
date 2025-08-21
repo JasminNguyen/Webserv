@@ -481,7 +481,7 @@ configParser::ServerConfig& Connection::match_location_block()
 		{
 			// Append the rest of the URI (after the location path) to the root
 			std::string relative_path = clean_uri.substr(best_location->path.length()); //start wher best_location ends until the end of the clean_uri and make a substring out of it
-			script_path = best_location->root + relative_path;
+			script_path = best_location->root + '/' + relative_path;
 			_source.set_path(script_path); //setting the constructed script path in Source
 			this->setLocationBlockIndex(best_index); //setting the location block index (needed in handle_request)
 		}

@@ -174,7 +174,7 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         // set up script_path, argv + envp, then exec
         //execve("/usr/bin/php-cgi", argv, envp);
         //const char* script_path = CGI::construct_script_path(request, server_block).c_str();
-        const char *script_path = conn.get_source().get_path().c_str();
+        const char *script_path = conn.get_source().get_path().c_str(); 
         char **argv = construct_argv(script_path);
         char **envp = construct_envp(request, server_block);
 
