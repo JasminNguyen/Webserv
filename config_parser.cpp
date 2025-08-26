@@ -93,7 +93,7 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
             break;
         }
     }
-
+    std::cout << "number of location blocks in parsing_location_blocks: " << currentServer.locations.size() << std::endl;
     return 0;
 }
 int configParser::parse_server_block(std::vector<std::string> &tokens)
@@ -130,7 +130,7 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
                 }
                 else if(tokens[i] == "error_page")
                 {
-                    currentServer.error_code = atoi(tokens[++i].c_str());
+                    currentServer.error_code = tokens[++i];
                     currentServer.path_error_page = tokens[++i];
                     currentServer.error_pages_map[currentServer.error_code] = currentServer.path_error_page; //put it in map
                 }

@@ -130,9 +130,17 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		
 
 		// generate response parts
-		this->_response.get_http_version() = "HTTP /1.1";
-		this->_response.get_status_code() = "200";
-		this->_response.get_status_string() = "OK";
+		// this->_response.get_http_version() = "HTTP /1.1";
+		// this->_response.get_status_code() = "200";
+		// this->_response.get_status_string() = "OK";
+		if (this->_response.get_http_version().empty())
+			this->_response.get_http_version() = "HTTP/1.1"; // fix extra space
+
+		if (this->_response.get_status_code().empty()) {
+			this->_response.get_status_code() = "200";
+			this->_response.get_status_string() = "OK";
+		}
+		
 		if (this->get_value_from_map("Connection") == "close")
 			this->_response.get_headers()["Connection"] = "close";
 		//generate headers
@@ -250,8 +258,10 @@ void	Connection::handle_request(Webserver &webserv) {
 	std::string target = this->_request.get_target();
 	//MAYBE WE SHOULD DECIDE HERE WHETHER WE ARE DEALING WITH A REDIRECTION (CGI AND FILES CAN BE AFFECTED) -> MATCH_LOCATION BLOCK HERE.
 	configParser::ServerConfig &server = this->match_location_block();
+	std::cout << "number of location blocks in request handling is: " << server.locations.size() << std::endl;
 	if(!server.locations.empty() && server.locations[this->_location_block_index].redirection_present == 1)
 	{
+		std::cout << "We are redirecting" << std::endl;
 		this->generate_redirection_response_from_server(server);
 		this->_response.assemble();
 		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
@@ -282,6 +292,7 @@ void	Connection::handle_request(Webserver &webserv) {
 		struct stat st;
 		if (stat(file_path.c_str(), &st) == 0) {
 			if (S_ISDIR(st.st_mode)) {
+				std::cout << "Do I go in here? " << std::endl;
 				std::cout << "should be a directory." << std::endl;
 				//check if there is an index file in the directory
 				if(has_index_file(file_path, "index.html") == 1)
@@ -306,6 +317,12 @@ void	Connection::handle_request(Webserver &webserv) {
 					else //autoindex off
 					{
 						generate_error_page("403", server);
+						if (this->_source.get_fd() != -1) 
+						{
+							webserv.add_to_source_map(&(this->_source), this);
+							webserv.add_connection_to_poll(this->_source.get_fd());
+							return; // body will be read later
+						}
 						//generate headers
 						this->_response.assemble();
 						webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
@@ -314,17 +331,42 @@ void	Connection::handle_request(Webserver &webserv) {
 				}
 			}
 			if (access(file_path.c_str() , R_OK) == -1) {
-				std::cerr << "File doesn't exist or isn't readable." << std::endl; // ------- MODIFIED
-				if (errno == EACCES)	 // ------- ADDED
-					generate_error_page("403", server); //no permissions
+				std::cerr << "File doesn't exist or isn't readable." << std::endl;
+				if (errno == EACCES)
+				{	
+					generate_error_page("403", server);
+					if (this->_source.get_fd() != -1) 
+						{
+							webserv.add_to_source_map(&(this->_source), this);
+							webserv.add_connection_to_poll(this->_source.get_fd());
+							return; // body will be read later
+						}
+				}
 				else if (errno == ENOENT)
-					generate_error_page("404", server); //doesn't exist
+				{
+					generate_error_page("404", server);
+					if (this->_source.get_fd() != -1) 
+						{
+							webserv.add_to_source_map(&(this->_source), this);
+							webserv.add_connection_to_poll(this->_source.get_fd());
+							return; // body will be read later
+						}
+				}	
 				else
-					generate_error_page("500", server); //internal server error
+				{	
+					generate_error_page("500", server);
+					if (this->_source.get_fd() != -1) 
+						{
+							webserv.add_to_source_map(&(this->_source), this);
+							webserv.add_connection_to_poll(this->_source.get_fd());
+							return; // body will be read later
+						}
+				}
 				//generate headers
 				this->_response.assemble();
 				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 				return;
+
 			} else {
 				// open file
 				std::cout << "Am I a file?" << std::endl;
@@ -342,8 +384,16 @@ void	Connection::handle_request(Webserver &webserv) {
 		} else {
 			// errno == ENOENT
 			// stat() return an error --> 404
+			std::cout << "i go in here" << std::endl;
 			if (errno == ENOENT) {
 				generate_error_page("404", server);
+				std::cout << "i go in here 2" << std::endl;
+				if (this->_source.get_fd() != -1) 
+				{
+					webserv.add_to_source_map(&(this->_source), this);
+					webserv.add_connection_to_poll(this->_source.get_fd());
+					return; // body will be read later
+				}
 				//generate headers
 				this->_response.assemble();
 				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
@@ -418,7 +468,7 @@ configParser::ServerConfig& Connection::match_location_block()
 		}
 	}
 	// 3. match the host header to server block that are the Connection
-	std::vector<configParser::ServerConfig> servers_in_question = this->getServers();
+	std::vector<configParser::ServerConfig> &servers_in_question = this->getServers();
 	configParser::ServerConfig* matched_server = NULL;
 	for(std::vector<configParser::ServerConfig>::iterator it = servers_in_question.begin(); it != servers_in_question.end(); it++)
 	{
@@ -453,7 +503,7 @@ configParser::ServerConfig& Connection::match_location_block()
 
 	if(!matched_server->locations.empty()) //check if there are locations
 	{
-		std::vector<configParser::LocationConfig> locations_in_question = matched_server->locations;
+		std::vector<configParser::LocationConfig> &locations_in_question = matched_server->locations;
 
 		//going through locations of the respective server block
 		size_t best_len = 0;
@@ -497,8 +547,10 @@ configParser::ServerConfig& Connection::match_location_block()
 	else //if there are no locations -> we still have to construct the script_path
 	{
 		script_path = matched_server->root + clean_uri;
+		_source.set_path(script_path);
 
 	}
+	std::cout << "number of locations in match_location_block: " << matched_server->locations.size() << std::endl;
 	return *(matched_server);
 }
 

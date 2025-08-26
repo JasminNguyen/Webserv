@@ -20,7 +20,7 @@ class configParser
         int redirection_present;
         std::string path_redirection;
 
-        LocationConfig() : autoindex(0) {}
+        LocationConfig() : autoindex(0), redirection_present(0) {}
     };
 
     struct ServerConfig
