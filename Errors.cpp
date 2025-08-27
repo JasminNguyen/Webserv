@@ -30,7 +30,7 @@ void Connection::generate_error_page(std::string error_code, configParser::Serve
         for(std::map<std::string, std::string>::iterator it = server.error_pages_map.begin(); it != server.error_pages_map.end(); it++)
         {
             std::cout << "it->first: " << it->first << std::endl;
-            std::cout << "it->second: " << it->second << std::endl; 
+            std::cout << "it->second: " << it->second << std::endl;
             if(error_code == it->first) //found matching right error code in the config file
             {
                 std::cout << "We are using a local error page!" << std::endl;
@@ -42,7 +42,7 @@ void Connection::generate_error_page(std::string error_code, configParser::Serve
                 // return;
                 std::string error_path = it->second; // e.g. "/errors/404.html"
                 std::cout << "error_path: " << error_path << std::endl;
-                std::string error_path = "." + error_path; // quick mapping to ./errors/404.html
+                error_path = "." + error_path; // quick mapping to ./errors/404.html
                 struct stat st;
                 if (stat(error_path.c_str(), &st) == 0 && S_ISREG(st.st_mode) &&
                     access(error_path.c_str(), R_OK) == 0)
