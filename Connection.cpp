@@ -205,6 +205,10 @@ std::string	Connection::generate_directory_listing(std::string &file_path)
 
       	while ((entry = readdir(d)) != NULL)
 		{
+			if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+			{
+				continue;
+			}
         	html << " \n" << entry->d_name; //print all directory name
 			html << "<li><a href=\"" << entry->d_name << "\">" << entry->d_name << "</a></li>";
       	}
@@ -259,8 +263,13 @@ void	Connection::handle_request(Webserver &webserv) {
 	//MAYBE WE SHOULD DECIDE HERE WHETHER WE ARE DEALING WITH A REDIRECTION (CGI AND FILES CAN BE AFFECTED) -> MATCH_LOCATION BLOCK HERE.
 	configParser::ServerConfig &server = this->match_location_block();
 	std::cout << "number of location blocks in request handling is: " << server.locations.size() << std::endl;
+	std::cout << "our location block index is: " << this->get_location_block_index() << std::endl;
+	std::cout << "location in handle request is here: " << &server.locations[this->get_location_block_index()].redirection_present << std::endl;
+	std::cout << "path_redirection in handle_request : " << server.locations[this->get_location_block_index()].path_redirection << std::endl;
+
 	if(!server.locations.empty() && server.locations[this->_location_block_index].redirection_present == 1)
 	{
+		std::cout << "Do we even go HEEEEEEEEEERRRRRREEEE? " << std::endl;
 		std::cout << "We are redirecting" << std::endl;
 		this->generate_redirection_response_from_server(server);
 		this->_response.assemble();
@@ -292,7 +301,6 @@ void	Connection::handle_request(Webserver &webserv) {
 		struct stat st;
 		if (stat(file_path.c_str(), &st) == 0) {
 			if (S_ISDIR(st.st_mode)) {
-				std::cout << "Do I go in here? " << std::endl;
 				std::cout << "should be a directory." << std::endl;
 				//check if there is an index file in the directory
 				if(has_index_file(file_path, "index.html") == 1)
@@ -384,10 +392,8 @@ void	Connection::handle_request(Webserver &webserv) {
 		} else {
 			// errno == ENOENT
 			// stat() return an error --> 404
-			std::cout << "i go in here" << std::endl;
 			if (errno == ENOENT) {
 				generate_error_page("404", server);
-				std::cout << "i go in here 2" << std::endl;
 				if (this->_source.get_fd() != -1) 
 				{
 					webserv.add_to_source_map(&(this->_source), this);
@@ -534,6 +540,7 @@ configParser::ServerConfig& Connection::match_location_block()
 			script_path = best_location->root + '/' + relative_path;
 			_source.set_path(script_path); //setting the constructed script path in Source
 			this->setLocationBlockIndex(best_index); //setting the location block index (needed in handle_request)
+			std::cout << "location in match_location_block is here: " << &best_location->redirection_present << std::endl;
 		}
 		else
 		{

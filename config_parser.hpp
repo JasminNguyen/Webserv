@@ -17,8 +17,9 @@ class configParser
         int autoindex; //1 = on, 0 = off
         int allowed_methods_present;
         std::vector<std::string> allowed_methods;
-        int redirection_present;
+        int redirection_present;  //1 = on, 0 = off
         std::string path_redirection;
+        std::string redirection_code;
 
         LocationConfig() : autoindex(0), redirection_present(0) {}
     };

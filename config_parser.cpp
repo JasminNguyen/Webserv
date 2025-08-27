@@ -63,8 +63,15 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
                 }
                 else if(tokens[i] == "return")
                 {
-                    currentLocation.path_redirection = tokens[i + 2];
-                   // std::cout << "path redirection: " << currentLocation.path_redirection << std::endl;
+                    currentLocation.redirection_code = tokens[++i];
+                    currentLocation.path_redirection = tokens[++i];
+                    currentLocation.redirection_present = 1;
+                    std::cout << "path redirection in parser: " << currentLocation.path_redirection << std::endl;
+                    std::cout << "location in parser is here: " << &currentLocation.redirection_present << std::endl;
+                    if(currentLocation.redirection_present == 1)
+                    {
+                        std::cout << "In parser we have the redirection_present set to 1" << std::endl;
+                    }
                     i++;
                 }
                 else if(tokens[i] == "/cgi-bin")

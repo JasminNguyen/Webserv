@@ -42,7 +42,7 @@ void Connection::generate_error_page(std::string error_code, configParser::Serve
                 // return;
                 std::string error_path = it->second; // e.g. "/errors/404.html"
                 std::cout << "error_path: " << error_path << std::endl;
-                std::string error_path = "." + error_path; // quick mapping to ./errors/404.html
+                error_path = "." + error_path; // quick mapping to ./errors/404.html
                 struct stat st;
                 if (stat(error_path.c_str(), &st) == 0 && S_ISREG(st.st_mode) &&
                     access(error_path.c_str(), R_OK) == 0)
