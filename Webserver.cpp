@@ -154,6 +154,7 @@ Connection *Webserver::get_triggered_connection(int poll_fd) {
 
 int	Webserver::event_router(Connection *con, pollfd poll) {
 	if (con->listeningSocketTriggered(poll.fd)) {
+		std::cout << "POLLIN on LS: " << poll.fd << std::endl;
 		con->accept_request(*this);
 		return 1;
 	} else if (con->clientRequestIncoming(poll)) {
@@ -174,6 +175,7 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 			return 1;
 		}
 	} else if (con->sourceTriggered(poll.fd)) {
+		std::cout << "POLLIN on SOURCE: " << poll.fd << std::endl;
 		if (con->read_from_source(*this, poll)) {
 			return 0;
 		} else {
@@ -195,6 +197,27 @@ void	Webserver::launch() {
 			std::cerr << "Issue with poll" << std::endl;
 			throw(std::exception());
 		}
+
+		/* for (size_t i = 0; i < this->_connections.size() && n > 0; ) {
+			std::cout << "connection[" << i << "]" << this->_connections[i].get_sock_poll()->fd << std::endl;
+			if (this->_connections[i].get_sock_poll()->revents & POLLIN ||
+			this->_connections[i].get_sock_poll()->revents & POLLOUT) {
+				std::cout << "TEST 1" << std::endl;
+				con = &this->_connections[i];
+				i += this->event_router(con, con->get_sock_poll());
+				n--;
+				// add new time stamp
+			} else if (this->_connections[i].get_source_poll() && this->_connections[i].get_source_poll()->revents & POLLIN) {
+				std::cout << "TEST 2" << std::endl;
+				con = &this->_connections[i];
+				i += this->event_router(con, con->get_source_poll());
+				n--;
+			} else {
+				// check last activity - remove and don't iterate if idle for too long - only iterate if still active
+				i++;
+			}
+		} */
+
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
 			if (this->_polls[i].revents & POLLIN || this->_polls[i].revents & POLLOUT) {
 				pollfd poll = this->_polls[i];
@@ -215,6 +238,7 @@ void	Webserver::launch() {
 					}
 				} */
 				// add new time stamp
+				con->set_time_stamp();
 				n--;
 			} else {
 				// check last activity - remove and don't iterate if idle for too long - only iterate if still active
