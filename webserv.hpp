@@ -17,8 +17,9 @@
 # include <sstream>
 # include <string>
 # include <map>
-#include <sys/stat.h>
-#include <dirent.h>
+# include <sys/stat.h>
+# include <dirent.h>
+# include <time.h>
 
 //helper functions
 std::string trim(const std::string& str);
