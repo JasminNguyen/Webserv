@@ -51,6 +51,7 @@ class Connection {
 		std::string								get_value_from_map(std::string key);
 		void									reset_revents(Webserver &webserv, int fd);
 		void									set_time_stamp();
+		bool									is_timed_out();
 
 	private:
 

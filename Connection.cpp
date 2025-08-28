@@ -615,6 +615,14 @@ void Connection::reset_revents(Webserver &webserv, int fd) {
 
 void	Connection::set_time_stamp() {
 	if (time(&this->_last_active) == -1) {
-		throw(std::runtime_error("couldn't pipe"));
+		throw(std::runtime_error("time() call failed"));
+	}
+}
+
+bool	Connection::is_timed_out() {
+	if (time(0) - this->_last_active > TIME_OUT) {
+		return true;
+	} else {
+		return false;
 	}
 }
