@@ -30,7 +30,7 @@ Connection::Connection(const Connection &ref) {
 	this->_source = ref._source;
 	this->_host = ref._host;
 	this->_port = ref._port;
-	this->_last_active = ref._last_active;
+	this->_last_active = time(0);
 }
 
 Connection::~Connection() {
@@ -47,7 +47,7 @@ Connection &Connection::operator=(const Connection &ref) {
 		this->_source = ref._source;
 		this->_host = ref._host;
 		this->_port = ref._port;
-		this->_last_active = ref._last_active;
+		this->_last_active = time(0);
 	}
 	return *this;
 }
