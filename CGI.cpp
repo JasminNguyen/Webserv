@@ -86,11 +86,23 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
 
 
 
-char** CGI::construct_argv(const char* &script_path)
+char** CGI::construct_argv(const char* &script_path,Request &request)
 {
     char *converted_script_path = strdup(script_path); //don't forget to free strdup allocates mem
     char **argv = new char*[3];
-    argv[0] = (char*)"/usr/bin/python3"; // argv[0] = interpreter (I assume that we just use a python script to run cgi)
+    //argv[0] = (char*)"/usr/bin/python3"; // argv[0] = interpreter (I assume that we just use a python script to run cgi)
+    if(request.get_target().substr(request.get_target().size() - 3).compare(".py") == 0)
+    {
+        argv[0] = (char*)"/usr/bin/python3";
+    }
+    else if(request.get_target().substr(request.get_target().size() - 3).compare(".php") == 0)
+    {
+        argv[0] = (char*)"/usr/local/bin/php";
+    }
+    else if(request.get_target().substr(request.get_target().size() - 3).compare(".sh") == 0)
+    {
+        argv[0] = (char*)"/bin/sh";
+    }
     argv[1] = converted_script_path;  // argv[1] = script_path that I constructed earlier
     argv[2] = NULL;   // end of array
 
@@ -175,7 +187,9 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         //execve("/usr/bin/php-cgi", argv, envp);
         //const char* script_path = CGI::construct_script_path(request, server_block).c_str();
         const char *script_path = conn.get_source().get_path().c_str(); 
-        char **argv = construct_argv(script_path);
+        //const char *script_path = request.get_target().c_str();
+        //std::cout << "script path in run_cgi(): " << script_path << std::endl;
+        char **argv = construct_argv(script_path, request);
         char **envp = construct_envp(request, server_block);
 
         //script_path I have to construct myself out of the info in the request header and the locations

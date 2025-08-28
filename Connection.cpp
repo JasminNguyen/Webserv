@@ -109,8 +109,8 @@ void	Connection::setHost(std::string host) {
 int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 	char buf[1024];
 	int src_fd = this->_source.get_fd();
-
 	if (poll.revents & POLLIN) {
+			std::cout << "WE are trying to read from the source" << std::endl;
 		// read from source and pass into response instance
 		int n = 0;
 		while((n = read(src_fd, buf, 1024)) && n == 1024)
@@ -264,8 +264,8 @@ void	Connection::handle_request(Webserver &webserv) {
 	configParser::ServerConfig &server = this->match_location_block();
 	std::cout << "number of location blocks in request handling is: " << server.locations.size() << std::endl;
 	std::cout << "our location block index is: " << this->get_location_block_index() << std::endl;
-	std::cout << "location in handle request is here: " << &server.locations[this->get_location_block_index()].redirection_present << std::endl;
-	std::cout << "path_redirection in handle_request : " << server.locations[this->get_location_block_index()].path_redirection << std::endl;
+	std::cout << "location in handle request is here: " << &server.locations[this->get_location_block_index()].path << std::endl;
+	//std::cout << "path_redirection in handle_request : " << server.locations[this->get_location_block_index()].path_redirection << std::endl;
 
 	if(!server.locations.empty() && server.locations[this->_location_block_index].redirection_present == 1)
 	{
@@ -278,13 +278,13 @@ void	Connection::handle_request(Webserver &webserv) {
 	}
 	//CHECK FOR POST, GET, DELETE METHOD 
 
-	if (target.size() >= 3 && target.substr(target.size() - 3).compare(".py") == 0) {
+	if (target.size() >= 3 && /*target.substr(target.size() - 3).compare(".py") == 0 */ server.locations[this->get_location_block_index()].path == "/cgi-bin/") {
 		std::cout << "Hi from the if block to initiate CGI" << std::endl;
 		// static file or cgi
 		/*in here we would probably call the cgi -> to be approved by Marc!
 		cgi.run_cgi(request, server_block, webserver, this);
 		*/
-	
+		//std::cout << "request target in CGI block in handle_request: " << this->_request.get_target() << std::endl;
 		CGI::run_cgi(this->_request, server, webserv, *this);
 
 	} else {
