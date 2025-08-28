@@ -53,6 +53,7 @@ class Webserver {
 		Connection								*find_triggered_socket(int poll_fd);
 		Connection								*find_triggered_source(int poll_fd);
 		int										event_router(Connection *con, pollfd poll);
+		void									_check_for_timeouts();
 
 };
 

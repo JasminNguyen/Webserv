@@ -160,6 +160,7 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 	} else if (con->clientRequestIncoming(poll)) {
 		std::cout << "POLLIN with fd: " << poll.fd << std::endl;
 		con->handle_request(*this);
+		con->set_time_stamp();
 		return 1;
 	} else if (con->clientExpectingResponse(poll)) {
 		std::cout << "POLLOUT with fd: " << poll.fd << std::endl;
@@ -170,8 +171,10 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 				this->remove_connection(con);
 			}
 			this->remove_connection(con);
+			con->set_time_stamp();
 			return 0;
 		} else {
+			con->set_time_stamp();
 			return 1;
 		}
 	} else if (con->sourceTriggered(poll.fd)) {
@@ -238,13 +241,12 @@ void	Webserver::launch() {
 					}
 				} */
 				// add new time stamp
-				con->set_time_stamp();
 				n--;
 			} else {
 				// check last activity - remove and don't iterate if idle for too long - only iterate if still active
 				i++;
 			}
-
+			this->_check_for_timeouts();
 		}
 	}
 }
@@ -258,7 +260,7 @@ void	Webserver::parse_config(const char *config_file) {
 	this->_config = configParser.serverConfigVector;
 }
 
-void Webserver::add_pollout_to_socket_events(int fd) {
+void	Webserver::add_pollout_to_socket_events(int fd) {
 	for (std::vector<pollfd>::iterator it = this->_polls.begin(); it != this->_polls.end(); it++) {
 		if (it->fd == fd) {
 			it->events |= POLLOUT;
@@ -267,11 +269,22 @@ void Webserver::add_pollout_to_socket_events(int fd) {
 	}
 }
 
-void Webserver::remove_pollout_from_socket_events(int fd) {
+void	Webserver::remove_pollout_from_socket_events(int fd) {
 	for (std::vector<pollfd>::iterator it = this->_polls.begin(); it != this->_polls.end(); it++) {
 		if (it->fd == fd) {
 			it->events = POLLIN;
 			break;
+		}
+	}
+}
+
+void	Webserver::_check_for_timeouts() {
+	for (std::vector<Connection>::iterator it = this->_connections.begin(); it != this->_connections.end(); it++) {
+		if (it->get_socket().get_type() != "Listening Socket" && it->is_timed_out()) {
+			std::cout << "Connection is timed out!" << std::endl;
+			this->remove_from_poll(it->get_socket().get_fd());
+			this->remove_from_source_map(&it->get_source());
+			this->remove_connection(&(*it));
 		}
 	}
 }
