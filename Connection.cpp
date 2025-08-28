@@ -10,6 +10,7 @@ Connection::Connection() {
 	//std::cout << "Connection default constructor called" << std::endl;
 	this->_host = "0.0.0.0";
 	this->_port = -1;
+	this->_last_active = time(0);
 }
 
 Connection::Connection(Socket sock) {
@@ -17,6 +18,7 @@ Connection::Connection(Socket sock) {
 	this->_sock = sock;
 	this->_host = "0.0.0.0";
 	this->_port = -1;
+	this->_last_active = time(0);
 }
 
 Connection::Connection(const Connection &ref) {
@@ -28,6 +30,7 @@ Connection::Connection(const Connection &ref) {
 	this->_source = ref._source;
 	this->_host = ref._host;
 	this->_port = ref._port;
+	this->_last_active = ref._last_active;
 }
 
 Connection::~Connection() {
@@ -44,6 +47,7 @@ Connection &Connection::operator=(const Connection &ref) {
 		this->_source = ref._source;
 		this->_host = ref._host;
 		this->_port = ref._port;
+		this->_last_active = ref._last_active;
 	}
 	return *this;
 }
