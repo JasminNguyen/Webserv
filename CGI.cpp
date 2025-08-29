@@ -95,7 +95,7 @@ char** CGI::construct_argv(const char* &script_path,Request &request)
     {
         argv[0] = (char*)"/usr/bin/python3";
     }
-    else if(request.get_target().substr(request.get_target().size() - 3).compare(".php") == 0)
+    else if(request.get_target().substr(request.get_target().size() - 4).compare(".php") == 0)
     {
         argv[0] = (char*)"/usr/local/bin/php";
     }
