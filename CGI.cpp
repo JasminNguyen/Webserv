@@ -149,6 +149,53 @@ char** CGI::construct_argv(const char* &script_path,Request &request)
 
 void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, Webserver & webserver, Connection &conn)
 {
+    if (access(conn.get_source().get_path().c_str() , R_OK) == -1) 
+    {
+        std::cerr << "File doesn't exist or isn't readable." << std::endl;
+        if (errno == EACCES)
+        {	
+            conn.generate_error_page("403", server_block);
+            if (conn.get_source().get_fd() != -1) 
+                {
+                    webserver.add_to_source_map(&(conn.get_source()), &conn);
+                    webserver.add_connection_to_poll(conn.get_source().get_fd());
+                    return; // body will be read later
+                }
+        }
+        else if (errno == ENOENT)
+        {
+            conn.generate_error_page("404", server_block);
+            if (conn.get_source().get_fd() != -1)
+                {
+                    webserver.add_to_source_map(&(conn.get_source()), &conn);
+                    webserver.add_connection_to_poll(conn.get_source().get_fd());
+                    return; // body will be read later
+                }
+        }	
+        else
+        {	
+            conn.generate_error_page("500", server_block);
+            if (conn.get_source().get_fd() != -1) 
+                {
+                    webserver.add_to_source_map(&(conn.get_source()), &conn);
+                    webserver.add_connection_to_poll(conn.get_source().get_fd());
+                    return; // body will be read later
+                }
+        }
+    }
+    if (access(conn.get_source().get_path().c_str() , X_OK) == -1) 
+    {
+        if (errno == EACCES) 
+        {
+            conn.generate_error_page("403", server_block);
+            // If a local error page was opened, it set a source FD; stream it via POLLIN
+            if (conn.get_source().get_fd() != -1) {
+                webserver.add_to_source_map(&(conn.get_source()), &conn);
+                webserver.add_connection_to_poll(conn.get_source().get_fd());
+                return; // body will be read later from the file
+            }
+        }
+    }
     //creating 2 pipes (one that the cgi reads and one that the cgi writes to)
     /*
     sooo we have 4 filedescriptors:

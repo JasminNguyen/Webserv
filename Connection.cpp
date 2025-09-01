@@ -398,8 +398,7 @@ void	Connection::handle_request(Webserver &webserv) {
 			// stat() return an error --> 404
 			if (errno == ENOENT) {
 				generate_error_page("404", server);
-				std::cout << "i go in here 2" << std::endl;
-				if (this->_source.get_fd() != -1) 
+				if (this->_source.get_fd() != -1)
 				{
 					webserv.add_to_source_map(&(this->_source), this);
 					webserv.add_connection_to_poll(this->_source.get_fd());
