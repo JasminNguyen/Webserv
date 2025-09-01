@@ -50,6 +50,8 @@ class Connection {
 		void									generate_redirection_response_from_server(configParser::ServerConfig& server);
 		std::string								get_value_from_map(std::string key);
 		void									reset_revents(Webserver &webserv, int fd);
+		void									set_time_stamp();
+		bool									is_timed_out();
 
 	private:
 
@@ -61,6 +63,7 @@ class Connection {
 		int										_port;
 		std::string								_host;
 		int 									_location_block_index; //ADDED BY JASMIN
+		time_t									_last_active;
 
 };
 

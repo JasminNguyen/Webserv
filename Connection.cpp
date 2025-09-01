@@ -10,6 +10,7 @@ Connection::Connection() {
 	//std::cout << "Connection default constructor called" << std::endl;
 	this->_host = "0.0.0.0";
 	this->_port = -1;
+	this->_last_active = time(0);
 }
 
 Connection::Connection(Socket sock) {
@@ -17,6 +18,7 @@ Connection::Connection(Socket sock) {
 	this->_sock = sock;
 	this->_host = "0.0.0.0";
 	this->_port = -1;
+	this->_last_active = time(0);
 }
 
 Connection::Connection(const Connection &ref) {
@@ -28,6 +30,7 @@ Connection::Connection(const Connection &ref) {
 	this->_source = ref._source;
 	this->_host = ref._host;
 	this->_port = ref._port;
+	this->_last_active = time(0);
 }
 
 Connection::~Connection() {
@@ -44,6 +47,7 @@ Connection &Connection::operator=(const Connection &ref) {
 		this->_source = ref._source;
 		this->_host = ref._host;
 		this->_port = ref._port;
+		this->_last_active = time(0);
 	}
 	return *this;
 }
@@ -122,12 +126,12 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			throw Exceptions("Error: read failed in read_from_source\n");
 		}
 		else
-		{	
+		{
 			buf[n] = 0;
 			this->_response.get_body().append(buf);
 		}
-		
-		
+
+
 
 		// generate response parts
 		// this->_response.get_http_version() = "HTTP /1.1";
@@ -140,7 +144,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			this->_response.get_status_code() = "200";
 			this->_response.get_status_string() = "OK";
 		}
-		
+
 		if (this->get_value_from_map("Connection") == "close")
 			this->_response.get_headers()["Connection"] = "close";
 		//generate headers
@@ -156,7 +160,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		webserver.remove_from_source_map(&(this->_source));
 		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
 		return 1;
-		
+
 	}
 	return 0;/*else { // if POLLOUT
 		// chunk writing to source fd (cgi)
@@ -276,7 +280,7 @@ void	Connection::handle_request(Webserver &webserv) {
 		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 		return;
 	}
-	//CHECK FOR POST, GET, DELETE METHOD 
+	//CHECK FOR POST, GET, DELETE METHOD
 
 	if (target.size() >= 3 && /*target.substr(target.size() - 3).compare(".py") == 0 */ server.locations[this->get_location_block_index()].path == "/cgi-bin/") {
 		std::cout << "Hi from the if block to initiate CGI" << std::endl;
@@ -284,7 +288,7 @@ void	Connection::handle_request(Webserver &webserv) {
 		/*in here we would probably call the cgi -> to be approved by Marc!
 		cgi.run_cgi(request, server_block, webserver, this);
 		*/
-		//std::cout << "request target in CGI block in handle_request: " << this->_request.get_target() << std::endl;
+	
 		CGI::run_cgi(this->_request, server, webserv, *this);
 
 	} else {
@@ -325,7 +329,7 @@ void	Connection::handle_request(Webserver &webserv) {
 					else //autoindex off
 					{
 						generate_error_page("403", server);
-						if (this->_source.get_fd() != -1) 
+						if (this->_source.get_fd() != -1)
 						{
 							webserv.add_to_source_map(&(this->_source), this);
 							webserv.add_connection_to_poll(this->_source.get_fd());
@@ -341,9 +345,9 @@ void	Connection::handle_request(Webserver &webserv) {
 			if (access(file_path.c_str() , R_OK) == -1) {
 				std::cerr << "File doesn't exist or isn't readable." << std::endl;
 				if (errno == EACCES)
-				{	
+				{
 					generate_error_page("403", server);
-					if (this->_source.get_fd() != -1) 
+					if (this->_source.get_fd() != -1)
 						{
 							webserv.add_to_source_map(&(this->_source), this);
 							webserv.add_connection_to_poll(this->_source.get_fd());
@@ -353,17 +357,17 @@ void	Connection::handle_request(Webserver &webserv) {
 				else if (errno == ENOENT)
 				{
 					generate_error_page("404", server);
-					if (this->_source.get_fd() != -1) 
+					if (this->_source.get_fd() != -1)
 						{
 							webserv.add_to_source_map(&(this->_source), this);
 							webserv.add_connection_to_poll(this->_source.get_fd());
 							return; // body will be read later
 						}
-				}	
+				}
 				else
-				{	
+				{
 					generate_error_page("500", server);
-					if (this->_source.get_fd() != -1) 
+					if (this->_source.get_fd() != -1)
 						{
 							webserv.add_to_source_map(&(this->_source), this);
 							webserv.add_connection_to_poll(this->_source.get_fd());
@@ -394,6 +398,7 @@ void	Connection::handle_request(Webserver &webserv) {
 			// stat() return an error --> 404
 			if (errno == ENOENT) {
 				generate_error_page("404", server);
+				std::cout << "i go in here 2" << std::endl;
 				if (this->_source.get_fd() != -1) 
 				{
 					webserv.add_to_source_map(&(this->_source), this);
@@ -439,7 +444,7 @@ int	Connection::send_response(Webserver &webserv) {
 			if (this->get_value_from_map("Connection") == "close") {
 				close(fd);
 				webserv.remove_from_poll(fd);
-			} 
+			}
 			else {
 				webserv.remove_pollout_from_socket_events(fd);
 			}
@@ -617,5 +622,19 @@ void Connection::reset_revents(Webserver &webserv, int fd) {
 			it->revents = 0;
 			return;
 		}
+	}
+}
+
+void	Connection::set_time_stamp() {
+	if (time(&this->_last_active) == -1) {
+		throw(std::runtime_error("time() call failed"));
+	}
+}
+
+bool	Connection::is_timed_out() {
+	if (time(0) - this->_last_active > TIME_OUT) {
+		return true;
+	} else {
+		return false;
 	}
 }

@@ -154,11 +154,13 @@ Connection *Webserver::get_triggered_connection(int poll_fd) {
 
 int	Webserver::event_router(Connection *con, pollfd poll) {
 	if (con->listeningSocketTriggered(poll.fd)) {
+		std::cout << "POLLIN on LS: " << poll.fd << std::endl;
 		con->accept_request(*this);
 		return 1;
 	} else if (con->clientRequestIncoming(poll)) {
 		std::cout << "POLLIN with fd: " << poll.fd << std::endl;
 		con->handle_request(*this);
+		con->set_time_stamp();
 		return 1;
 	} else if (con->clientExpectingResponse(poll)) {
 		std::cout << "POLLOUT with fd: " << poll.fd << std::endl;
@@ -169,11 +171,14 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 				this->remove_connection(con);
 			}
 			this->remove_connection(con);
+			con->set_time_stamp();
 			return 0;
 		} else {
+			con->set_time_stamp();
 			return 1;
 		}
 	} else if (con->sourceTriggered(poll.fd)) {
+		std::cout << "POLLIN on SOURCE: " << poll.fd << std::endl;
 		if (con->read_from_source(*this, poll)) {
 			return 0;
 		} else {
@@ -195,6 +200,27 @@ void	Webserver::launch() {
 			std::cerr << "Issue with poll" << std::endl;
 			throw(std::exception());
 		}
+
+		/* for (size_t i = 0; i < this->_connections.size() && n > 0; ) {
+			std::cout << "connection[" << i << "]" << this->_connections[i].get_sock_poll()->fd << std::endl;
+			if (this->_connections[i].get_sock_poll()->revents & POLLIN ||
+			this->_connections[i].get_sock_poll()->revents & POLLOUT) {
+				std::cout << "TEST 1" << std::endl;
+				con = &this->_connections[i];
+				i += this->event_router(con, con->get_sock_poll());
+				n--;
+				// add new time stamp
+			} else if (this->_connections[i].get_source_poll() && this->_connections[i].get_source_poll()->revents & POLLIN) {
+				std::cout << "TEST 2" << std::endl;
+				con = &this->_connections[i];
+				i += this->event_router(con, con->get_source_poll());
+				n--;
+			} else {
+				// check last activity - remove and don't iterate if idle for too long - only iterate if still active
+				i++;
+			}
+		} */
+
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
 			if (this->_polls[i].revents & POLLIN || this->_polls[i].revents & POLLOUT) {
 				pollfd poll = this->_polls[i];
@@ -220,7 +246,7 @@ void	Webserver::launch() {
 				// check last activity - remove and don't iterate if idle for too long - only iterate if still active
 				i++;
 			}
-
+			this->_check_for_timeouts();
 		}
 	}
 }
@@ -234,7 +260,7 @@ void	Webserver::parse_config(const char *config_file) {
 	this->_config = configParser.serverConfigVector;
 }
 
-void Webserver::add_pollout_to_socket_events(int fd) {
+void	Webserver::add_pollout_to_socket_events(int fd) {
 	for (std::vector<pollfd>::iterator it = this->_polls.begin(); it != this->_polls.end(); it++) {
 		if (it->fd == fd) {
 			it->events |= POLLOUT;
@@ -243,11 +269,22 @@ void Webserver::add_pollout_to_socket_events(int fd) {
 	}
 }
 
-void Webserver::remove_pollout_from_socket_events(int fd) {
+void	Webserver::remove_pollout_from_socket_events(int fd) {
 	for (std::vector<pollfd>::iterator it = this->_polls.begin(); it != this->_polls.end(); it++) {
 		if (it->fd == fd) {
 			it->events = POLLIN;
 			break;
+		}
+	}
+}
+
+void	Webserver::_check_for_timeouts() {
+	for (std::vector<Connection>::iterator it = this->_connections.begin(); it != this->_connections.end(); it++) {
+		if (it->get_socket().get_type() != "Listening Socket" && it->is_timed_out()) {
+			std::cout << "Connection is timed out!" << std::endl;
+			this->remove_from_poll(it->get_socket().get_fd());
+			this->remove_from_source_map(&it->get_source());
+			this->remove_connection(&(*it));
 		}
 	}
 }
