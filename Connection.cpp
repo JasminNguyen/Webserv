@@ -253,6 +253,7 @@ void	Connection::handle_request(Webserver &webserv) {
 	if (n < 0) {
 		throw(std::exception());
 	} else { // difference between n == 0 and n > 0 ???
+		buf[n] = 0;
 		this->_request.get_raw().append(buf);
 	}
 	std::cout << "We are parsing the request" << std::endl;

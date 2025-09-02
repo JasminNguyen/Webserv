@@ -4,6 +4,7 @@
 #include "Connection.hpp"
 #include "ListeningSocket.hpp"
 #include "Source.hpp"
+#include "Exceptions.hpp"
 
 Webserver::Webserver() {}
 
@@ -101,16 +102,19 @@ void	Webserver::add_connection_to_poll(int fd) {
 
 /* return connection instance that was triggered
 to then handle request or send response */
+/*
 Connection	*Webserver::find_triggered_socket(int poll_fd) {
 	for (std::vector<Connection>::iterator con = this->_connections.begin();
 	con != this->_connections.end(); con++) {
-		if (con->get_socket().get_fd() == poll_fd) {
+		if (con->get_socket().get_fd() == poll_fd || con->get_source().get_fd() == poll_fd) {
 			return &(*con);
 		}
 	}
 	return NULL;
 }
+*/
 
+/*
 Connection	*Webserver::find_triggered_source(int poll_fd) {
 	for (std::map<Source *, Connection *>::iterator it = this->_source_map.begin(); it != this->_source_map.end(); it++) {
 		if (it->first->get_fd() == poll_fd) {
@@ -119,6 +123,7 @@ Connection	*Webserver::find_triggered_source(int poll_fd) {
 	}
 	return NULL;
 }
+*/
 
 /* remove pollfd instance from pollfd vector */
 void	Webserver::remove_from_poll(int fd) {
@@ -140,14 +145,19 @@ void	Webserver::remove_connection(Connection *con) {
 }
 
 Connection *Webserver::get_triggered_connection(int poll_fd) {
-	Connection *con;
-	con = this->find_triggered_socket(poll_fd);
-	if (!con) {
-		con = this->find_triggered_source(poll_fd);
+	Connection *con = NULL;
+
+	for (std::vector<Connection>::iterator it = this->_connections.begin();
+	it != this->_connections.end(); it++) {
+		if (it->get_socket().get_fd() == poll_fd || it->get_source().get_fd() == poll_fd) {
+			con = &(*it);
+			break;
+		}
 	}
 	if (!con) {
 		std::cout << "poll_fd is: " << poll_fd << std::endl;
 		std::cout << "ERROR!!!" << std::endl;
+		throw
 	}
 	return con;
 }
@@ -195,7 +205,7 @@ void	Webserver::launch() {
 	Connection	*con;
 	while (true) {
 		//std::cout << "Do we get here after having an empty response?" << std::endl;
-		int n = poll(this->_polls.data(), this->_polls.size(), 0);
+		int n = poll(this->_polls.data(), this->_polls.size(), 100);
 		if (n < 0) {
 			std::cerr << "Issue with poll" << std::endl;
 			throw(std::exception());
@@ -243,11 +253,14 @@ void	Webserver::launch() {
 				// add new time stamp
 				n--;
 			} else {
+				if (this->_polls[i].revents != 0) {
+					std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
+				}
 				// check last activity - remove and don't iterate if idle for too long - only iterate if still active
 				i++;
 			}
-			this->_check_for_timeouts();
 		}
+		this->_check_for_timeouts();
 	}
 }
 
@@ -279,12 +292,14 @@ void	Webserver::remove_pollout_from_socket_events(int fd) {
 }
 
 void	Webserver::_check_for_timeouts() {
-	for (std::vector<Connection>::iterator it = this->_connections.begin(); it != this->_connections.end(); it++) {
-		if (it->get_socket().get_type() != "Listening Socket" && it->is_timed_out()) {
+	for (size_t i = 0; i < this->_connections.size(); ) {
+		if (this->_connections[i].get_socket().get_type() != "Listening Socket" && this->_connections[i].is_timed_out()) {
 			std::cout << "Connection is timed out!" << std::endl;
-			this->remove_from_poll(it->get_socket().get_fd());
-			this->remove_from_source_map(&it->get_source());
-			this->remove_connection(&(*it));
+			this->remove_from_poll(this->_connections[i].get_socket().get_fd());
+			this->remove_from_source_map(&(this->_connections[i].get_source()));
+			this->remove_connection(&(this->_connections[i]));
+		} else {
+			i++;
 		}
 	}
 }

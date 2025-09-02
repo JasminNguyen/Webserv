@@ -1,4 +1,5 @@
 #include "Request.hpp"
+#include "webserv.hpp"
 
 Request::Request() {
 	this->_body = "";
@@ -62,6 +63,24 @@ std::string	&Request::get_body() {
 	return this->_body;
 }
 
+void	Request::process(int sock_fd) {
+	char buf[1024];
+	// read into this->_req->_raw
+	std::cout << "handle request on client socket" << std::endl;
+	size_t n = 0;
+	while ((n = read(sock_fd, buf, sizeof(buf))) && n == 1024) {
+		this->_raw.append(buf);
+	}
+	if (n < 0) {
+		throw(std::exception());
+	} else { // difference between n == 0 and n > 0 ???
+		this->_raw.append(buf);
+	}
+	std::cout << "We are parsing the request" << std::endl;
+	std::cout << std::endl << this->_raw << std::endl;
+	this->parse();
+}
+
 void	Request::parse() {
 
 	std::string	line;
@@ -78,11 +97,15 @@ void	Request::parse() {
 		}
 	}
 
-	
+
 
 	// PARSING THE BODY IS STILL MISSING
-	
-	std::getline(ss, this->get_body(), '\0');
+
+	if (this->_method == "POST") {
+		std::getline(ss, this->get_body(), '\0');
+	} else {
+		this->_body = "";
+	}
 	/* std::cout << "Method: " << this->_method << std::endl;
 	std::cout << "Target: " << this->_target << std::endl;
 	std::cout << "HTTP Version: " << this->_http_version << std::endl;

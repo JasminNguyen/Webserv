@@ -23,6 +23,7 @@ class Request {
 		std::map<std::string, std::string>	&get_headers();
 		std::string							&get_body();
 
+		void								process(int sock_fd);
 		void								parse();
 
 	private:
