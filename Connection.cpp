@@ -113,8 +113,8 @@ void	Connection::setHost(std::string host) {
 int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 	char buf[1024];
 	int src_fd = this->_source.get_fd();
-
 	if (poll.revents & POLLIN) {
+			std::cout << "WE are trying to read from the source" << std::endl;
 		// read from source and pass into response instance
 		int n = 0;
 		while((n = read(src_fd, buf, 1024)) && n == 1024)
@@ -144,7 +144,6 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			this->_response.get_status_code() = "200";
 			this->_response.get_status_string() = "OK";
 		}
-
 		if (this->get_value_from_map("Connection") == "close")
 			this->_response.get_headers()["Connection"] = "close";
 		//generate headers
@@ -209,6 +208,10 @@ std::string	Connection::generate_directory_listing(std::string &file_path)
 
       	while ((entry = readdir(d)) != NULL)
 		{
+			if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+			{
+				continue;
+			}
         	html << " \n" << entry->d_name; //print all directory name
 			html << "<li><a href=\"" << entry->d_name << "\">" << entry->d_name << "</a></li>";
       	}
@@ -264,8 +267,13 @@ void	Connection::handle_request(Webserver &webserv) {
 	//MAYBE WE SHOULD DECIDE HERE WHETHER WE ARE DEALING WITH A REDIRECTION (CGI AND FILES CAN BE AFFECTED) -> MATCH_LOCATION BLOCK HERE.
 	configParser::ServerConfig &server = this->match_location_block();
 	std::cout << "number of location blocks in request handling is: " << server.locations.size() << std::endl;
+	std::cout << "our location block index is: " << this->get_location_block_index() << std::endl;
+	std::cout << "location in handle request is here: " << &server.locations[this->get_location_block_index()].path << std::endl;
+	//std::cout << "path_redirection in handle_request : " << server.locations[this->get_location_block_index()].path_redirection << std::endl;
+
 	if(!server.locations.empty() && server.locations[this->_location_block_index].redirection_present == 1)
 	{
+		std::cout << "Do we even go HEEEEEEEEEERRRRRREEEE? " << std::endl;
 		std::cout << "We are redirecting" << std::endl;
 		this->generate_redirection_response_from_server(server);
 		this->_response.assemble();
@@ -274,13 +282,13 @@ void	Connection::handle_request(Webserver &webserv) {
 	}
 	//CHECK FOR POST, GET, DELETE METHOD
 
-	if (target.size() >= 3 && target.substr(target.size() - 3).compare(".py") == 0) {
+	if (target.size() >= 3 && /*target.substr(target.size() - 3).compare(".py") == 0 */ server.locations[this->get_location_block_index()].path == "/cgi-bin/") {
 		std::cout << "Hi from the if block to initiate CGI" << std::endl;
 		// static file or cgi
 		/*in here we would probably call the cgi -> to be approved by Marc!
 		cgi.run_cgi(request, server_block, webserver, this);
 		*/
-
+	
 		CGI::run_cgi(this->_request, server, webserv, *this);
 
 	} else {
@@ -297,7 +305,6 @@ void	Connection::handle_request(Webserver &webserv) {
 		struct stat st;
 		if (stat(file_path.c_str(), &st) == 0) {
 			if (S_ISDIR(st.st_mode)) {
-				std::cout << "Do I go in here? " << std::endl;
 				std::cout << "should be a directory." << std::endl;
 				//check if there is an index file in the directory
 				if(has_index_file(file_path, "index.html") == 1)
@@ -389,10 +396,8 @@ void	Connection::handle_request(Webserver &webserv) {
 		} else {
 			// errno == ENOENT
 			// stat() return an error --> 404
-			std::cout << "i go in here" << std::endl;
 			if (errno == ENOENT) {
 				generate_error_page("404", server);
-				std::cout << "i go in here 2" << std::endl;
 				if (this->_source.get_fd() != -1)
 				{
 					webserv.add_to_source_map(&(this->_source), this);
@@ -539,6 +544,7 @@ configParser::ServerConfig& Connection::match_location_block()
 			script_path = best_location->root + '/' + relative_path;
 			_source.set_path(script_path); //setting the constructed script path in Source
 			this->setLocationBlockIndex(best_index); //setting the location block index (needed in handle_request)
+			std::cout << "location in match_location_block is here: " << &best_location->redirection_present << std::endl;
 		}
 		else
 		{
