@@ -157,7 +157,7 @@ Connection *Webserver::get_triggered_connection(int poll_fd) {
 	if (!con) {
 		std::cout << "poll_fd is: " << poll_fd << std::endl;
 		std::cout << "ERROR!!!" << std::endl;
-		throw
+		throw Exceptions("Connection not found!");
 	}
 	return con;
 }
