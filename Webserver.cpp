@@ -181,7 +181,7 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 				this->remove_connection(con);
 			}
 			this->remove_connection(con);
-			con->set_time_stamp();
+			//con->set_time_stamp();
 			return 0;
 		} else {
 			con->set_time_stamp();
@@ -295,6 +295,7 @@ void	Webserver::_check_for_timeouts() {
 	for (size_t i = 0; i < this->_connections.size(); ) {
 		if (this->_connections[i].get_socket().get_type() != "Listening Socket" && this->_connections[i].is_timed_out()) {
 			std::cout << "Connection is timed out!" << std::endl;
+			close(this->_connections[i].get_socket().get_fd());
 			this->remove_from_poll(this->_connections[i].get_socket().get_fd());
 			this->remove_from_source_map(&(this->_connections[i].get_source()));
 			this->remove_connection(&(this->_connections[i]));
@@ -303,3 +304,6 @@ void	Webserver::_check_for_timeouts() {
 		}
 	}
 }
+
+
+// close source fd in case of error
