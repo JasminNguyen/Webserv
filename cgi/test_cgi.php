@@ -8,7 +8,7 @@
 
 // Body
 echo "<html>";
-echo "<head><title>CGI Test (PHP)</title></head>";
+echo "<head><title>CGI Test (PHP)</title><link rel=\"icon\" href=\"data:,\"></head>";
 echo "<body>";
 echo "<h1>Hello from PHP CGI!</h1>";
 // echo "<p>REQUEST_METHOD = " . $_SERVER['REQUEST_METHOD'] . "</p>";

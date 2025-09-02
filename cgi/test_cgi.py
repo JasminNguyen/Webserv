@@ -6,7 +6,7 @@ import os
 #print("Content-Type: text/html\n")
 
 print("<html>")
-print("<head><title>CGI Test</title></head>")
+print("<head><title>CGI Test</title><link rel=\"icon\" href=\"data:,\"></head>")
 print("<body>")
 print("<h1>Hello from Python CGI!</h1>")
 

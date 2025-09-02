@@ -144,7 +144,6 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			this->_response.get_status_code() = "200";
 			this->_response.get_status_string() = "OK";
 		}
-
 		if (this->get_value_from_map("Connection") == "close")
 			this->_response.get_headers()["Connection"] = "close";
 		//generate headers

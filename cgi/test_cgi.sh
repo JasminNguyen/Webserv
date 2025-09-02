@@ -7,7 +7,7 @@
 
 # Body
 echo "<html>"
-echo "<head><title>CGI Test (sh)</title></head>"
+echo "<head><title>CGI Test (sh)</title><link rel="icon" href="data:,"></head>"
 echo "<body>"
 echo "<h1>Hello from sh CGI!</h1>"
 #echo "<p>SCRIPT_NAME = $SCRIPT_NAME</p>"
