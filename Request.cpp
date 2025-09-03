@@ -96,11 +96,6 @@ void	Request::parse() {
 			break;
 		}
 	}
-
-
-
-	// PARSING THE BODY IS STILL MISSING
-
 	if (this->_method == "POST") {
 		std::getline(ss, this->get_body(), '\0');
 	} else {

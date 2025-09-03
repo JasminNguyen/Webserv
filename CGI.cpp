@@ -149,49 +149,33 @@ char** CGI::construct_argv(const char* &script_path,Request &request)
 
 void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, Webserver & webserver, Connection &conn)
 {
-    if (access(conn.get_source().get_path().c_str() , R_OK) == -1) 
+    if (access(conn.get_source().get_path().c_str() , R_OK) == -1)
     {
         std::cerr << "File doesn't exist or isn't readable." << std::endl;
         if (errno == EACCES)
-        {	
-            conn.generate_error_page("403", server_block);
-            if (conn.get_source().get_fd() != -1) 
-                {
-                    webserver.add_to_source_map(&(conn.get_source()), &conn);
-                    webserver.add_connection_to_poll(conn.get_source().get_fd());
-                    return; // body will be read later
-                }
+        {
+            conn.generate_error_page(webserver, "403", server_block);
         }
         else if (errno == ENOENT)
         {
-            conn.generate_error_page("404", server_block);
-            if (conn.get_source().get_fd() != -1)
-                {
-                    webserver.add_to_source_map(&(conn.get_source()), &conn);
-                    webserver.add_connection_to_poll(conn.get_source().get_fd());
-                    return; // body will be read later
-                }
-        }	
+            conn.generate_error_page(webserver, "404", server_block);
+        }
         else
-        {	
-            conn.generate_error_page("500", server_block);
-            if (conn.get_source().get_fd() != -1) 
-                {
-                    webserver.add_to_source_map(&(conn.get_source()), &conn);
-                    webserver.add_connection_to_poll(conn.get_source().get_fd());
-                    return; // body will be read later
-                }
+        {
+            conn.generate_error_page(webserver, "500", server_block);
+        }
+        if (conn.get_source().get_fd() != -1)
+        {
+            return; // body will be read later
         }
     }
-    if (access(conn.get_source().get_path().c_str() , X_OK) == -1) 
+    if (access(conn.get_source().get_path().c_str() , X_OK) == -1)
     {
-        if (errno == EACCES) 
+        if (errno == EACCES)
         {
-            conn.generate_error_page("403", server_block);
+            conn.generate_error_page(webserver, "403", server_block);
             // If a local error page was opened, it set a source FD; stream it via POLLIN
             if (conn.get_source().get_fd() != -1) {
-                webserver.add_to_source_map(&(conn.get_source()), &conn);
-                webserver.add_connection_to_poll(conn.get_source().get_fd());
                 return; // body will be read later from the file
             }
         }
@@ -233,7 +217,7 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         // set up script_path, argv + envp, then exec
         //execve("/usr/bin/php-cgi", argv, envp);
         //const char* script_path = CGI::construct_script_path(request, server_block).c_str();
-        const char *script_path = conn.get_source().get_path().c_str(); 
+        const char *script_path = conn.get_source().get_path().c_str();
         //const char *script_path = request.get_target().c_str();
         //std::cout << "script path in run_cgi(): " << script_path << std::endl;
         char **argv = construct_argv(script_path, request);
@@ -273,11 +257,6 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
    //put out_pipe in Source-Connection map so that we know which CGI response belongs to which client
 
     conn.get_source().set_fd(out_pipe[0]);
-    webserver.add_to_source_map(&(conn.get_source()), &conn);
-    //webserver.get_source_map()[&(conn.get_source())] = &conn;
-    //should we maybe use pointers in the map instead of references here? -> ask Marc
-
-
     }
 }
 

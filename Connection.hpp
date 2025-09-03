@@ -44,7 +44,7 @@ class Connection {
 		void									accept_request(Webserver &webserv);
 		void									handle_request(Webserver &webserv);
 		int										send_response(Webserver &webserv);
-		void									generate_error_page(std::string error_code, configParser::ServerConfig& server);
+		void									generate_error_page(Webserver &webserv, std::string error_code, configParser::ServerConfig& server);
 		int										has_index_file(const std::string& dir_path, const std::string& index_file_name);
 		std::string								generate_directory_listing(std::string &file_path);
 		void									generate_redirection_response_from_server(configParser::ServerConfig& server);
@@ -52,6 +52,7 @@ class Connection {
 		void									reset_revents(Webserver &webserv, int fd);
 		void									set_time_stamp();
 		bool									is_timed_out();
+		bool									last_request_process_unfinished();
 		void									dismiss_old_request(Webserver &webserv);
 
 	private:

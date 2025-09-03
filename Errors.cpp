@@ -19,7 +19,7 @@ std::string find_error_message(std::string error_code)
     }
 }
 
-void Connection::generate_error_page(std::string error_code, configParser::ServerConfig& server)
+void Connection::generate_error_page(Webserver &webserv, std::string error_code, configParser::ServerConfig& server)
 {
     std::string error_message = find_error_message(error_code);
     //check if there is a provided error page in config file
@@ -51,6 +51,8 @@ void Connection::generate_error_page(std::string error_code, configParser::Serve
                     if (fd != -1) {
                         this->get_source().set_path(error_path);
                         this->get_source().set_fd(fd);
+                        webserv.add_connection_to_poll(fd);
+
                         // don't forget: caller must still register fd with poll -> handle_request()
                         return;
                     }

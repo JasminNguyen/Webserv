@@ -88,27 +88,6 @@ void	Connection::setHost(std::string host) {
 	this->_host = host;
 }
 
-// /* detect type of triggered event and facilitate right action */
-// int	Connection::handle_socket_event(Webserver &webserv, pollfd &poll) {
-// 	//std::cout << "revents: " << (poll.revents == POLLOUT ? "YES" : "NO") << std::endl;
-// 	//std::cout << "poll fd: " << poll.fd << std::endl;
-// 	if (poll.revents & POLLIN) {
-// 		std::cout << "HERE WE GO with POLLIN!" << std::endl;
-// 		if (this->get_socket().get_type() == "Listening Socket") {
-// 			std::cout << "HERE WE GO with Listening Socket!" << std::endl;
-// 			this->accept_request(webserv);
-// 			return 0;
-// 		} else {
-// 			std::cout << "HERE WE GO with client socket!" << std::endl;
-// 			this->handle_request(webserv);
-// 			return 0;
-// 		}
-// 	} else {
-// 		std::cout << "HERE WE GO with POLLOUT!" << std::endl;
-// 		return this->send_response(webserv);
-// 	}
-// }
-
 /* read from connection source and append to connection response */
 int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 	char buf[1024];
@@ -155,8 +134,6 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		webserver.remove_from_poll(src_fd);
 		std::cout << "How often???????????????????????" << std::endl;
 		this->_response.assemble();
-		// remove pair from source map
-		webserver.remove_from_source_map(&(this->_source));
 		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
 		return 1;
 
@@ -246,38 +223,31 @@ int		Connection::has_index_file(const std::string& dir_path, const std::string& 
 
 void Connection::dismiss_old_request(Webserver &webserv)
 {
+	std::cout << "we are dismissing the old request" << std::endl;
 	size_t fd = this->_source.get_fd();
 	close(fd);
 	webserv.remove_from_poll(fd);
 	this->_source.set_fd(-1);
+	std::cout << "source_fd is now: " << this->_source.get_fd() << std::endl;
 
 }
-/* read and process request to produce response */
-void	Connection::handle_request(Webserver &webserv) {
+
+bool	Connection::last_request_process_unfinished() {
 	std::cout << "source_fd is: " << this->_source.get_fd() << std::endl;
 
-	if(this->_source.get_fd() != -1) {
-		std::cout << "we are dismissing the old request" << std::endl;
+	if (this->_source.get_fd() != -1) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/* read and process request to produce response */
+void	Connection::handle_request(Webserver &webserv) {
+	if (this->last_request_process_unfinished()) {
 		this->dismiss_old_request(webserv);
-		std::cout << "source_fd is: " << this->_source.get_fd() << std::endl;
-		//throw Exceptions("Exception: old request dismissed");
 	}
-	char buf[1024];
-	// read into this->_req->_raw
-	std::cout << "handle request on client socket" << std::endl;
-	size_t n = 0;
-	while ((n = read(this->_sock.get_fd(), buf, sizeof(buf))) && n == 1024) {
-		this->_request.get_raw().append(buf);
-	}
-	if (n < 0) {
-		throw(std::exception());
-	} else { // difference between n == 0 and n > 0 ???
-		buf[n] = 0;
-		this->_request.get_raw().append(buf);
-	}
-	std::cout << "We are parsing the request" << std::endl;
-	std::cout << std::endl << this->_request.get_raw() << std::endl;
-	this->_request.parse();
+	this->_request.process(this->_sock.get_fd());
 	// create response
 	std::string target = this->_request.get_target();
 	//MAYBE WE SHOULD DECIDE HERE WHETHER WE ARE DEALING WITH A REDIRECTION (CGI AND FILES CAN BE AFFECTED) -> MATCH_LOCATION BLOCK HERE.
@@ -304,7 +274,7 @@ void	Connection::handle_request(Webserver &webserv) {
 		/*in here we would probably call the cgi -> to be approved by Marc!
 		cgi.run_cgi(request, server_block, webserver, this);
 		*/
-	
+
 		CGI::run_cgi(this->_request, server, webserv, *this);
 
 	} else {
@@ -344,11 +314,9 @@ void	Connection::handle_request(Webserver &webserv) {
 					}
 					else //autoindex off
 					{
-						generate_error_page("403", server);
+						generate_error_page(webserv, "403", server);
 						if (this->_source.get_fd() != -1)
 						{
-							webserv.add_to_source_map(&(this->_source), this);
-							webserv.add_connection_to_poll(this->_source.get_fd());
 							return; // body will be read later
 						}
 						//generate headers
@@ -362,33 +330,19 @@ void	Connection::handle_request(Webserver &webserv) {
 				std::cerr << "File doesn't exist or isn't readable." << std::endl;
 				if (errno == EACCES)
 				{
-					generate_error_page("403", server);
-					if (this->_source.get_fd() != -1)
-						{
-							webserv.add_to_source_map(&(this->_source), this);
-							webserv.add_connection_to_poll(this->_source.get_fd());
-							return; // body will be read later
-						}
+					generate_error_page(webserv, "403", server);
 				}
 				else if (errno == ENOENT)
 				{
-					generate_error_page("404", server);
-					if (this->_source.get_fd() != -1)
-						{
-							webserv.add_to_source_map(&(this->_source), this);
-							webserv.add_connection_to_poll(this->_source.get_fd());
-							return; // body will be read later
-						}
+					generate_error_page(webserv, "404", server);
 				}
 				else
 				{
-					generate_error_page("500", server);
-					if (this->_source.get_fd() != -1)
-						{
-							webserv.add_to_source_map(&(this->_source), this);
-							webserv.add_connection_to_poll(this->_source.get_fd());
-							return; // body will be read later
-						}
+					generate_error_page(webserv, "500", server);
+				}
+				if (this->_source.get_fd() != -1)
+				{
+					return; // body will be read later
 				}
 				//generate headers
 				this->_response.assemble();
@@ -403,8 +357,6 @@ void	Connection::handle_request(Webserver &webserv) {
 					std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
 				}
 				this->_source.set_fd(fd);
-				// add fd and connection to map
-				webserv.add_to_source_map(&(this->_source), this);
 				// add poll instance to poll vector
 				webserv.add_connection_to_poll(fd);
 				std::cout << "Opening static file has worked." << std::endl;
@@ -413,11 +365,9 @@ void	Connection::handle_request(Webserver &webserv) {
 			// errno == ENOENT
 			// stat() return an error --> 404
 			if (errno == ENOENT) {
-				generate_error_page("404", server);
+				generate_error_page(webserv, "404", server);
 				if (this->_source.get_fd() != -1)
 				{
-					webserv.add_to_source_map(&(this->_source), this);
-					webserv.add_connection_to_poll(this->_source.get_fd());
 					return; // body will be read later
 				}
 				//generate headers
