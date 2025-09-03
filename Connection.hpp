@@ -52,6 +52,7 @@ class Connection {
 		void									reset_revents(Webserver &webserv, int fd);
 		void									set_time_stamp();
 		bool									is_timed_out();
+		void									dismiss_old_request(Webserver &webserv);
 
 	private:
 

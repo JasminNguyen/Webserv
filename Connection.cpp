@@ -244,8 +244,24 @@ int		Connection::has_index_file(const std::string& dir_path, const std::string& 
     return 0;
 }
 
+void Connection::dismiss_old_request(Webserver &webserv)
+{
+	size_t fd = this->_source.get_fd();
+	close(fd);
+	webserv.remove_from_poll(fd);
+	this->_source.set_fd(-1);
+
+}
 /* read and process request to produce response */
 void	Connection::handle_request(Webserver &webserv) {
+	std::cout << "source_fd is: " << this->_source.get_fd() << std::endl;
+
+	if(this->_source.get_fd() != -1) {
+		std::cout << "we are dismissing the old request" << std::endl;
+		this->dismiss_old_request(webserv);
+		std::cout << "source_fd is: " << this->_source.get_fd() << std::endl;
+		//throw Exceptions("Exception: old request dismissed");
+	}
 	char buf[1024];
 	// read into this->_req->_raw
 	std::cout << "handle request on client socket" << std::endl;

@@ -255,6 +255,7 @@ void	Webserver::launch() {
 			} else {
 				if (this->_polls[i].revents != 0) {
 					std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
+					throw Exceptions("Error: other triggered event");
 				}
 				// check last activity - remove and don't iterate if idle for too long - only iterate if still active
 				i++;
