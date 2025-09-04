@@ -39,10 +39,17 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
     }
 
     if(request.get_method() == "GET")
-    {
-        int pos_question_mark = request.get_target().find("?");
-        std::string query_string = request.get_target().substr(pos_question_mark + 1);
-        env.push_back("QUERY_STRING=" + query_string);
+    {   
+        if(request.get_target().find("?") != std::string::npos)
+        {   
+            int pos_question_mark = request.get_target().find("?");
+            std::string query_string = request.get_target().substr(pos_question_mark + 1);
+            env.push_back("QUERY_STRING=" + query_string);
+        }
+        else
+        {
+            env.push_back("QUERY_STRING=");
+        }
     }
     //find content lenght in header map
     std::map<std::string, std::string>& headers = request.get_headers();
