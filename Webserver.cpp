@@ -33,18 +33,6 @@ std::vector<pollfd>	&Webserver::get_polls() {
 	return this->_polls;
 }
 
-std::map<Source *, Connection *>	&Webserver::get_source_map() {
-	return this->_source_map;
-}
-
-void	Webserver::add_to_source_map(Source *key, Connection *value) {
-	this->_source_map[key] = value;
-}
-
-void	Webserver::remove_from_source_map(Source *key) {
-	this->_source_map.erase(key);
-}
-
 void	Webserver::populate() {
 	populate_socket_connections();
 	create_polls();
@@ -99,31 +87,6 @@ void	Webserver::add_connection_to_poll(int fd) {
 	poll.events =  POLLIN; // which events do we need to track ???
 	this->_polls.push_back(poll);
 }
-
-/* return connection instance that was triggered
-to then handle request or send response */
-/*
-Connection	*Webserver::find_triggered_socket(int poll_fd) {
-	for (std::vector<Connection>::iterator con = this->_connections.begin();
-	con != this->_connections.end(); con++) {
-		if (con->get_socket().get_fd() == poll_fd || con->get_source().get_fd() == poll_fd) {
-			return &(*con);
-		}
-	}
-	return NULL;
-}
-*/
-
-/*
-Connection	*Webserver::find_triggered_source(int poll_fd) {
-	for (std::map<Source *, Connection *>::iterator it = this->_source_map.begin(); it != this->_source_map.end(); it++) {
-		if (it->first->get_fd() == poll_fd) {
-			return it->second;
-		}
-	}
-	return NULL;
-}
-*/
 
 /* remove pollfd instance from pollfd vector */
 void	Webserver::remove_from_poll(int fd) {
@@ -181,7 +144,6 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 				this->remove_connection(con);
 			}
 			this->remove_connection(con);
-			//con->set_time_stamp();
 			return 0;
 		} else {
 			con->set_time_stamp();
@@ -210,54 +172,17 @@ void	Webserver::launch() {
 			std::cerr << "Issue with poll" << std::endl;
 			throw(std::exception());
 		}
-
-		/* for (size_t i = 0; i < this->_connections.size() && n > 0; ) {
-			std::cout << "connection[" << i << "]" << this->_connections[i].get_sock_poll()->fd << std::endl;
-			if (this->_connections[i].get_sock_poll()->revents & POLLIN ||
-			this->_connections[i].get_sock_poll()->revents & POLLOUT) {
-				std::cout << "TEST 1" << std::endl;
-				con = &this->_connections[i];
-				i += this->event_router(con, con->get_sock_poll());
-				n--;
-				// add new time stamp
-			} else if (this->_connections[i].get_source_poll() && this->_connections[i].get_source_poll()->revents & POLLIN) {
-				std::cout << "TEST 2" << std::endl;
-				con = &this->_connections[i];
-				i += this->event_router(con, con->get_source_poll());
-				n--;
-			} else {
-				// check last activity - remove and don't iterate if idle for too long - only iterate if still active
-				i++;
-			}
-		} */
-
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
 			if (this->_polls[i].revents & POLLIN || this->_polls[i].revents & POLLOUT) {
 				pollfd poll = this->_polls[i];
 				con = this->get_triggered_connection(poll.fd);
 				i += this->event_router(con, poll);
-				/*con = this->find_triggered_socket(this->_polls[i].fd);
-				if (con) {
-					if (con->handle_socket_event(*this, this->_polls[i])) {
-						this->remove_connection(con);
-					} else {
-						i++;
-					}
-				} else {
-					con = this->find_triggered_source(this->_polls[i].fd);
-					if (con) {
-						if (con->handle_source_event(*this, this->_polls[i]) == 0)
-							i++;
-					}
-				} */
-				// add new time stamp
 				n--;
 			} else {
 				if (this->_polls[i].revents != 0) {
 					std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
 					throw Exceptions("Error: other triggered event");
 				}
-				// check last activity - remove and don't iterate if idle for too long - only iterate if still active
 				i++;
 			}
 		}
@@ -298,7 +223,6 @@ void	Webserver::_check_for_timeouts() {
 			std::cout << "Connection is timed out!" << std::endl;
 			close(this->_connections[i].get_socket().get_fd());
 			this->remove_from_poll(this->_connections[i].get_socket().get_fd());
-			this->remove_from_source_map(&(this->_connections[i].get_source()));
 			this->remove_connection(&(this->_connections[i]));
 		} else {
 			i++;
