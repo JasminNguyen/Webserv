@@ -40,16 +40,14 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
 
     if(request.get_method() == "GET")
     {   
+        std::string query_string = "";
         if(request.get_target().find("?") != std::string::npos)
         {   
             int pos_question_mark = request.get_target().find("?");
-            std::string query_string = request.get_target().substr(pos_question_mark + 1);
-            env.push_back("QUERY_STRING=" + query_string);
+            query_string = request.get_target().substr(pos_question_mark + 1);
         }
-        else
-        {
-            env.push_back("QUERY_STRING=");
-        }
+        env.push_back("QUERY_STRING=" + query_string);
+        
     }
     //find content lenght in header map
     std::map<std::string, std::string>& headers = request.get_headers();
@@ -87,6 +85,7 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
     {
         envp[i] = strdup(env[i].c_str());
     }
+    envp[array_length] = NULL;
 
     return envp;
 }

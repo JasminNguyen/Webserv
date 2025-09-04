@@ -90,25 +90,53 @@ void	Connection::setHost(std::string host) {
 
 /* read from connection source and append to connection response */
 int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
-	char buf[1024];
-	int src_fd = this->_source.get_fd();
-	if (poll.revents & POLLIN) {
-			std::cout << "WE are trying to read from the source" << std::endl;
-		// read from source and pass into response instance
-		int n = 0;
-		while((n = read(src_fd, buf, 1024)) && n == 1024)
+	// char buf[1024];
+	// int src_fd = this->_source.get_fd();
+	// if (poll.revents & POLLIN) {
+	// 		std::cout << "WE are trying to read from the source" << std::endl;
+	// 	// read from source and pass into response instance
+	// 	int n = 0;
+	// 	while((n = read(src_fd, buf, 1024)) && n == 1024)
+	// 	{
+	// 		this->_response.get_body().append(buf);
+	// 	}
+	// 	if(n < 0)
+	// 	{
+	// 		throw Exceptions("Error: read failed in read_from_source\n");
+	// 	}
+	// 	else
+	// 	{
+	// 		buf[n] = 0;
+	// 		this->_response.get_body().append(buf);
+	// 	}
+	// }
+
+	char buf[4096];
+	ssize_t n;
+	int src_fd =this->_source.get_fd();
+	if(poll.revents & POLLIN)
+	{
+		while (true) 
 		{
-			this->_response.get_body().append(buf);
+			n = read(src_fd, buf, sizeof(buf));
+
+			if (n > 0) 
+			{
+				// we got some data, append exactly n bytes
+				this->_response.get_body().append(buf, n);
+			} 
+			else if (n == 0) // EOF!!!
+			{
+				break;
+			} 
+			else // n < 0: error case
+			{
+
+				throw Exceptions("Error: read failed in read_from_source\n");
+			}
 		}
-		if(n < 0)
-		{
-			throw Exceptions("Error: read failed in read_from_source\n");
-		}
-		else
-		{
-			buf[n] = 0;
-			this->_response.get_body().append(buf);
-		}
+	}
+
 
 
 
@@ -137,7 +165,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
 		return 1;
 
-	}
+	
 	return 0;/*else { // if POLLOUT
 		// chunk writing to source fd (cgi)
 		//note from jassy: so turns out I was wrong: the cgi pipe will give me POLLIN, not POLLOUT (since it's the out_pipe[0])
