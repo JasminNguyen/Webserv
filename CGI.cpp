@@ -6,6 +6,7 @@
 #include "Request.hpp"
 #include "Webserver.hpp"
 #include "Source.hpp"
+#include "Exceptions.hpp"
 
 
 
@@ -37,25 +38,24 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
     {
         env.push_back("SCRIPT_NAME=" + request.get_target());
     }
-
-    if(request.get_method() == "GET")
+    //query string
+    std::string query_string = "";
+    if(request.get_target().find("?") != std::string::npos)
     {   
-        std::string query_string = "";
-        if(request.get_target().find("?") != std::string::npos)
-        {   
-            int pos_question_mark = request.get_target().find("?");
-            query_string = request.get_target().substr(pos_question_mark + 1);
-        }
-        env.push_back("QUERY_STRING=" + query_string);
-        
+        int pos_question_mark = request.get_target().find("?");
+        query_string = request.get_target().substr(pos_question_mark + 1);
     }
+    env.push_back("QUERY_STRING=" + query_string);
+        
+    
     //find content lenght in header map
     std::map<std::string, std::string>& headers = request.get_headers();
-
+    
     for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); it++)
     {
         if (it->first == "Content-Length")
         {
+            std::cout << "The cgi content length: " << it->second << std::endl;
             env.push_back("CONTENT_LENGTH=" + it->second);
         }
     }
@@ -64,6 +64,7 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
     {
         if (it->first == "Content-Type")
         {
+            std::cout << "The cgi content type is: " << it->second << std::endl;
             env.push_back("CONTENT_TYPE=" + it->second);
         }
     }
@@ -73,6 +74,7 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
     {
         if (it->first == "Host")
         {
+            std::cout << "The cgi server name is: " << it->second << std::endl;
             env.push_back("SERVER_NAME=" + it->second);
         }
     }
@@ -180,9 +182,9 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         if (errno == EACCES)
         {
             conn.generate_error_page(webserver, "403", server_block);
-            // If a local error page was opened, it set a source FD; stream it via POLLIN
-            if (conn.get_source().get_fd() != -1) {
-                return; // body will be read later from the file
+            if (conn.get_source().get_fd() != -1) 
+            {
+                return;
             }
         }
     }
@@ -198,12 +200,12 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
     int out_pipe[2];
     if(pipe(in_pipe)== -1 || pipe(out_pipe) == -1)
     {
-        throw(std::runtime_error("couldn't pipe"));
+        throw Exceptions("couldn't pipe");
     }
     pid_t pid = fork();
     if(pid == -1)
     {
-        throw(std::runtime_error("couldn't fork"));
+        throw Exceptions("couldn't fork");
     }
     if(pid == 0) //child
     {
@@ -223,6 +225,13 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         // set up script_path, argv + envp, then exec
         //execve("/usr/bin/php-cgi", argv, envp);
         //const char* script_path = CGI::construct_script_path(request, server_block).c_str();
+        
+        //DECIDING IF IT'S GET OR POST
+        // if(/*post request*/)
+        // {
+
+        // }
+
         const char *script_path = conn.get_source().get_path().c_str();
         //const char *script_path = request.get_target().c_str();
         //std::cout << "script path in run_cgi(): " << script_path << std::endl;
@@ -253,7 +262,7 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
 
     // write to in_pipe[1] → CGI stdin (cgi instructions)
     // read from out_pipe[0] ← CGI output (result of what cgi made)
-
+    std::cout << "body of POST request is: " << request.get_body() << std::endl;
     write(in_pipe[1], request.get_body().c_str(), request.get_body().size()); //writing request to CGI via pipe
     close(in_pipe[1]); //close that pipe
 
