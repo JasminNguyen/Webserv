@@ -242,6 +242,153 @@ bool	Connection::last_request_process_unfinished() {
 	}
 }
 
+
+bool	Connection::request_requires_cgi(configParser::ServerConfig &server) {
+	std::string target = this->_request.get_target();
+
+	if (target.size() >= 3 && server.locations[this->get_location_block_index()].path == "/cgi-bin/") {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool	Connection::is_redirection_present(configParser::ServerConfig &server) {
+
+	if(!server.locations.empty() && server.locations[this->_location_block_index].redirection_present == 1) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+void	Connection::serve_redirection(Webserver &webserv, configParser::ServerConfig &server) {
+	std::cout << "We are redirecting" << std::endl;
+		this->generate_redirection_response_from_server(server);
+		this->_response.assemble();
+		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+}
+
+void	Connection::create_response(Webserver &webserv, configParser::ServerConfig &server) {
+	//CHECK FOR POST, GET, DELETE METHOD
+
+	std::string request_method = this->_request.get_method();
+
+	if (request_method == "GET" || request_method == "POST") {
+		if (this->request_requires_cgi(server)) {
+			std::cout << "Hi from the if block to initiate CGI" << std::endl;
+			CGI::run_cgi(this->_request, server, webserv, *this);
+		} else {
+			// open static file
+			// open static file and add fd to poll vector
+				// check if file exists
+				// check if file is readable
+				// different error pages if file not readable or doesn't exist?
+			std::cout << "target: " << this->_request.get_target() << std::endl;
+			//this->_source.set_path("./content/test.html");
+			std::string file_path = this->_source.get_path();
+			std::cout << "file path: " << file_path << std::endl;
+
+			struct stat st;
+			if (stat(file_path.c_str(), &st) == 0) {
+				if (S_ISDIR(st.st_mode)) {
+					std::cout << "should be a directory." << std::endl;
+					//check if there is an index file in the directory
+					if(has_index_file(file_path, "index.html") == 1)
+					{
+						//serve index file
+						file_path.append("/index.html");
+					}
+					else //no index file -> check if autoindex is on
+					{
+						if(!server.locations.empty() && server.locations[this->get_location_block_index()].autoindex == 1)
+						{
+							//generate directory listing
+							std::string directory_listing_html = this->generate_directory_listing(file_path); //where do I put the return value
+							this->_response.set_body(directory_listing_html); //CORRECT????
+							this->_response.set_status_code("200");
+							this->_response.set_status_string("OK");
+							// generate headers
+							this->_response.assemble();
+							webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+							return;
+						}
+						else //autoindex off
+						{
+							generate_error_page(webserv, "403", server);
+							if (this->_source.get_fd() != -1)
+							{
+								return; // body will be read later
+							}
+							//generate headers
+							this->_response.assemble();
+							webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+							return;
+						}
+					}
+				}
+				if (access(file_path.c_str() , R_OK) == -1) {
+					std::cerr << "File doesn't exist or isn't readable." << std::endl;
+					if (errno == EACCES)
+					{
+						generate_error_page(webserv, "403", server);
+					}
+					else if (errno == ENOENT)
+					{
+						generate_error_page(webserv, "404", server);
+					}
+					else
+					{
+						generate_error_page(webserv, "500", server);
+					}
+					if (this->_source.get_fd() != -1)
+					{
+						return; // body will be read later
+					}
+					//generate headers
+					this->_response.assemble();
+					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+					return;
+
+				} else {
+					// open file
+					std::cout << "Am I a file?" << std::endl;
+					int fd = open(file_path.c_str(), O_RDONLY);
+					if (fd == -1) {
+						std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
+					}
+					this->_source.set_fd(fd);
+					// add poll instance to poll vector
+					webserv.add_connection_to_poll(fd);
+					std::cout << "Opening static file has worked." << std::endl;
+				}
+			} else {
+				// errno == ENOENT
+				// stat() return an error --> 404
+				if (errno == ENOENT) {
+					generate_error_page(webserv, "404", server);
+					if (this->_source.get_fd() != -1)
+					{
+						return; // body will be read later
+					}
+					//generate headers
+					this->_response.assemble();
+					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+					return;
+				} else {
+					throw(std::runtime_error("stat fails but it's not 404. Let's have a look."));
+				}
+			}
+		}
+	} /*else if (request_method == "POST") {
+
+	} */ else if (request_method == "DELETE") {
+		// delete source if available and
+	} else {
+		// method is not allowed
+	}
+}
+
 /* read and process request to produce response */
 void	Connection::handle_request(Webserver &webserv) {
 	if (this->last_request_process_unfinished()) {
@@ -257,138 +404,54 @@ void	Connection::handle_request(Webserver &webserv) {
 	std::cout << "location in handle request is here: " << &server.locations[this->get_location_block_index()].path << std::endl;
 	//std::cout << "path_redirection in handle_request : " << server.locations[this->get_location_block_index()].path_redirection << std::endl;
 
-	if(!server.locations.empty() && server.locations[this->_location_block_index].redirection_present == 1)
-	{
-		std::cout << "Do we even go HEEEEEEEEEERRRRRREEEE? " << std::endl;
-		std::cout << "We are redirecting" << std::endl;
-		this->generate_redirection_response_from_server(server);
-		this->_response.assemble();
-		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+	if(this->is_redirection_present(server)) {
+		this->serve_redirection(webserv, server);
 		return;
 	}
-	//CHECK FOR POST, GET, DELETE METHOD
 
-	if (target.size() >= 3 && /*target.substr(target.size() - 3).compare(".py") == 0 */ server.locations[this->get_location_block_index()].path == "/cgi-bin/") {
-		std::cout << "Hi from the if block to initiate CGI" << std::endl;
-		// static file or cgi
-		/*in here we would probably call the cgi -> to be approved by Marc!
-		cgi.run_cgi(request, server_block, webserver, this);
-		*/
+	// CHECK FOR POST, GET, DELETE METHOD
+	this->create_response(webserv, server);
+}
 
-		CGI::run_cgi(this->_request, server, webserv, *this);
+void	Connection::write_to_client(Webserver &webserv) {
+	int fd = this->get_socket().get_fd();
+	std::string &response = this->_response.get_raw();
 
+	std::cout << "trying to send.." << std::endl;
+	//std::cout << "Response: " << response << std::endl;
+	// send response - chunked writing based on buffer size
+	//std::cout << "fd: " << fd << std::endl;
+	size_t n = write(fd, response.c_str(), response.size());
+	if (n < 0) {
+		throw(std::exception());
 	} else {
-		// open static file and add fd to poll vector
-			// check if file exists
-			// check if file is readable
-			// different error pages if file not readable or doesn't exist?
-		std::cout << "target: " << this->_request.get_target() << std::endl;
-		//std::cout << "target: " << this->_request.get_target() << std::endl;
-		//this->_source.set_path("./content/test.html");
-		std::string file_path = this->_source.get_path();
-		std::cout << "file path: " << file_path << std::endl;
-
-		struct stat st;
-		if (stat(file_path.c_str(), &st) == 0) {
-			if (S_ISDIR(st.st_mode)) {
-				std::cout << "should be a directory." << std::endl;
-				//check if there is an index file in the directory
-				if(has_index_file(file_path, "index.html") == 1)
-				{
-					//serve index file
-					file_path.append("/index.html");
-				}
-				else //no index file -> check if autoindex is on
-				{
-					if(!server.locations.empty() && server.locations[this->get_location_block_index()].autoindex == 1)
-					{
-						//generate directory listing
-						std::string directory_listing_html = this->generate_directory_listing(file_path); //where do I put the return value
-						this->_response.set_body(directory_listing_html); //CORRECT????
-						this->_response.set_status_code("200");
-						this->_response.set_status_string("OK");
-						// generate headers
-						this->_response.assemble();
-						webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-						return;
-					}
-					else //autoindex off
-					{
-						generate_error_page(webserv, "403", server);
-						if (this->_source.get_fd() != -1)
-						{
-							return; // body will be read later
-						}
-						//generate headers
-						this->_response.assemble();
-						webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-						return;
-					}
-				}
-			}
-			if (access(file_path.c_str() , R_OK) == -1) {
-				std::cerr << "File doesn't exist or isn't readable." << std::endl;
-				if (errno == EACCES)
-				{
-					generate_error_page(webserv, "403", server);
-				}
-				else if (errno == ENOENT)
-				{
-					generate_error_page(webserv, "404", server);
-				}
-				else
-				{
-					generate_error_page(webserv, "500", server);
-				}
-				if (this->_source.get_fd() != -1)
-				{
-					return; // body will be read later
-				}
-				//generate headers
-				this->_response.assemble();
-				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-				return;
-
-			} else {
-				// open file
-				std::cout << "Am I a file?" << std::endl;
-				int fd = open(file_path.c_str(), O_RDONLY);
-				if (fd == -1) {
-					std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
-				}
-				this->_source.set_fd(fd);
-				// add poll instance to poll vector
-				webserv.add_connection_to_poll(fd);
-				std::cout << "Opening static file has worked." << std::endl;
-			}
-		} else {
-			// errno == ENOENT
-			// stat() return an error --> 404
-			if (errno == ENOENT) {
-				generate_error_page(webserv, "404", server);
-				if (this->_source.get_fd() != -1)
-				{
-					return; // body will be read later
-				}
-				//generate headers
-				this->_response.assemble();
-				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-				return;
-			} else {
-				throw(std::runtime_error("stat fails but it's not 404. Let's have a look."));
-			}
+		if (n != response.size()) {
+			throw Exceptions("Not the whole response was sent.");
 		}
+		close(fd);
+		webserv.remove_from_poll(fd);
+		// if request has Connection: close"
+		if (this->get_value_from_map("Connection") == "close") {
+			close(fd);
+			webserv.remove_from_poll(fd);
+		}
+		else {
+			webserv.remove_pollout_from_socket_events(fd);
+		}
+		std::cout << "Response:" << std::endl << std::endl;
+		std::cout << response << std::endl;
 	}
 }
 
 
-
-
 /* if response != "", send to client */
 int	Connection::send_response(Webserver &webserv) {
-	int fd = this->get_socket().get_fd();
 	std::string &response = this->_response.get_raw();
 	if (response != "") {
+
+		this->write_to_client(webserv);
+
+		/*
 		std::cout << "trying to send.." << std::endl;
 		//std::cout << "Response: " << response << std::endl;
 		// send response - chunked writing based on buffer size
@@ -398,10 +461,8 @@ int	Connection::send_response(Webserver &webserv) {
 		if (n < 0) {
 			throw(std::exception());
 		} else {
-			if (n == response.size()) {
-				std::cout << "Response delivered. YAY!!!" << std::endl;
-			} else {
-				std::cout << "Response not fully delivered." << std::endl;
+			if (n != response.size()) {
+				throw Exceptions("Not the whole response was sent.");
 			}
 			close(fd);
 			webserv.remove_from_poll(fd);
@@ -413,13 +474,15 @@ int	Connection::send_response(Webserver &webserv) {
 			else {
 				webserv.remove_pollout_from_socket_events(fd);
 			}
-			//this->reset_revents(webserv, fd);
+				//this->reset_revents(webserv, fd);
 			(void)webserv;
 			std::cout << "Response:" << std::endl << std::endl;
 			std::cout << response << std::endl;
 			return 1;
 			// remove connection (this) from webserv - is that possible right here?? We are in a method on that instance
 		}
+		*/
+		return 1;
 	} else {
 		std::cout << "Response is still empty right now" << std::endl;
 		return 0;

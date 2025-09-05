@@ -54,6 +54,11 @@ class Connection {
 		bool									is_timed_out();
 		bool									last_request_process_unfinished();
 		void									dismiss_old_request(Webserver &webserv);
+		void									write_to_client(Webserver &webserv);
+		bool									request_requires_cgi(configParser::ServerConfig &server);
+		bool									is_redirection_present(configParser::ServerConfig &server);
+		void									serve_redirection(Webserver &webserv, configParser::ServerConfig &server);
+		void									create_response(Webserver &webserv, configParser::ServerConfig &server);
 
 	private:
 
