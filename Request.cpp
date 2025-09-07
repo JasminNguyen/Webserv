@@ -89,8 +89,20 @@ void	Request::parse() {
 	std::getline(ss, line);
 	_parse_start_line(line);
 
+	// while (std::getline(ss, line)) {
+	// 	if (!line.empty()) {
+	// 		_parse_header_line(line);
+	// 	} else {
+	// 		break;
+	// 	}
+	// }
+	//MODIFIED BY JASMIN -> let Marc review this
 	while (std::getline(ss, line)) {
-		if (!line.empty()) {
+		if (!line.empty() && line != "\r") {
+			if (line.back() == '\r')
+			{
+				line.erase(line.size()-1);
+			}
 			_parse_header_line(line);
 		} else {
 			break;

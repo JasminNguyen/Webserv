@@ -55,7 +55,7 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
     {
         if (it->first == "Content-Length")
         {
-            std::cout << "The cgi content length: " << it->second << std::endl;
+            //std::cout << "The cgi content length: " << it->second << std::endl;
             env.push_back("CONTENT_LENGTH=" + it->second);
         }
     }
@@ -64,7 +64,7 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
     {
         if (it->first == "Content-Type")
         {
-            std::cout << "The cgi content type is: " << it->second << std::endl;
+            //std::cout << "The cgi content type is: " << it->second << std::endl;
             env.push_back("CONTENT_TYPE=" + it->second);
         }
     }
@@ -74,7 +74,6 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
     {
         if (it->first == "Host")
         {
-            std::cout << "The cgi server name is: " << it->second << std::endl;
             env.push_back("SERVER_NAME=" + it->second);
         }
     }
@@ -263,6 +262,7 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
     // write to in_pipe[1] → CGI stdin (cgi instructions)
     // read from out_pipe[0] ← CGI output (result of what cgi made)
     std::cout << "body of POST request is: " << request.get_body() << std::endl;
+    std::cout << "size of POST request is: " << request.get_body().size() << std::endl;
     write(in_pipe[1], request.get_body().c_str(), request.get_body().size()); //writing request to CGI via pipe
     close(in_pipe[1]); //close that pipe
 
