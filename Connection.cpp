@@ -322,12 +322,44 @@ void	Connection::serve_redirection(Webserver &webserv, configParser::ServerConfi
 		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 }
 
+
+int		Connection::check_content_length_too_big(Webserver &webserv, configParser::ServerConfig & server)
+{
+		int content_length = 0;
+		for(std::map<std::string, std::string>::iterator it = this->_request.get_headers().begin(); it != this->_request.get_headers().end(); it++)
+		{
+			if(it->first == "Content-Length")
+			{
+				content_length = atoi(it->second.c_str());
+				break;
+			}
+		}
+		if(server.client_max_body_size < content_length)
+		{
+			this->generate_error_page(webserv, "413", server);
+			if (this->_source.get_fd() != -1)
+			{
+				std::cout << "error in fd" << std::endl;
+				return -1;
+			}
+			//generate headers
+			this->_response.assemble();
+			webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+			return 1;
+		}
+		return 0;
+}
 void	Connection::create_response(Webserver &webserv, configParser::ServerConfig &server) {
 	//CHECK FOR POST, GET, DELETE METHOD
 
 	std::string request_method = this->_request.get_method();
 
 	if (request_method == "GET" || request_method == "POST") {
+
+		if(check_content_length_too_big(webserv, server))
+		{
+			return;
+		}
 		if (this->request_requires_cgi(server)) {
 			std::cout << "Hi from the if block to initiate CGI" << std::endl;
 			CGI::run_cgi(this->_request, server, webserv, *this);

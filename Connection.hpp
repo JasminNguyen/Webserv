@@ -60,6 +60,7 @@ class Connection {
 		void									serve_redirection(Webserver &webserv, configParser::ServerConfig &server);
 		void									create_response(Webserver &webserv, configParser::ServerConfig &server);
 		bool									is_cgi_broken();
+		int										check_content_length_too_big(Webserver &webserv, configParser::ServerConfig & server);
 
 	private:
 
