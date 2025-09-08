@@ -1,4 +1,3 @@
-
 #ifndef SOURCE_HPP
 # define SOURCE_HPP
 
@@ -14,18 +13,21 @@ class Source {
 
         Source      &operator=(const Source &ref);
 
+        bool        operator<(const Source &ref) const;
+
         const int   &get_fd() const;
+        std::string &get_path();
+        int         &get_pid();
 
         void        set_fd(int fd);
         void        set_path(std::string path);
-        std::string &get_path();
-        bool        operator<(const Source &ref) const;
+        void        set_pid(int pid);
 
     protected:
 
         int         _fd;
         std::string _path;
-
+        int         _pid;
 };
 
 

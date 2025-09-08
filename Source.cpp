@@ -4,12 +4,14 @@ Source::Source() {
     //std::cout << "Source gets created" << std::endl;
     this->_fd = -1;
     this->_path = "";
+    this->_pid = 0;
 }
 
 Source::Source(const Source &ref) {
     //std::cout << "Source copy constructor called" << std::endl;
     this->_fd = ref._fd;
     this->_path = ref._path;
+    this->_pid = ref._pid;
 }
 
 Source::~Source() {
@@ -21,6 +23,7 @@ Source &Source::operator=(const Source &ref) {
     if (this != &ref) {
         this->_fd = ref._fd;
         this->_path = ref._path;
+        this->_pid = ref._pid;
     }
     return *this;
 }
@@ -29,19 +32,24 @@ const int &Source::get_fd() const {
     return this->_fd;
 }
 
-void Source::set_path(std::string path)
-{
+std::string &Source::get_path() {
+    return this->_path;
+}
+
+int &Source::get_pid() {
+    return this->_pid;
+}
+
+void    Source::set_path(std::string path) {
     this->_path = path;
 }
 
-void Source::set_fd(int fd)
-{
+void    Source::set_fd(int fd) {
     this->_fd = fd;
 }
 
-std::string &Source::get_path()
-{
-    return this->_path;
+void    Source::set_pid(int pid) {
+    this->_pid = pid;
 }
 
 bool Source::operator<(const Source &ref) const {
