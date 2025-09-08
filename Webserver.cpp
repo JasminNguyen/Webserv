@@ -187,6 +187,7 @@ void	Webserver::launch() {
 			}
 		}
 		this->_check_for_timeouts();
+		this->_check_for_broken_cgi();
 	}
 }
 
@@ -223,6 +224,19 @@ void	Webserver::_check_for_timeouts() {
 			std::cout << "Connection is timed out!" << std::endl;
 			close(this->_connections[i].get_socket().get_fd());
 			this->remove_from_poll(this->_connections[i].get_socket().get_fd());
+			this->remove_connection(&(this->_connections[i]));
+		} else {
+			i++;
+		}
+	}
+}
+
+void	Webserver::_check_for_broken_cgi() {
+	for (size_t i = 0; i < this->_connections.size(); ) {
+		if (this->_connections[i].get_source().get_pid() && this->_connections[i].is_cgi_broken()) {
+			std::cout << "CGI broke!" << std::endl;
+			close(this->_connections[i].get_source().get_fd());
+			this->remove_from_poll(this->_connections[i].get_source().get_fd());
 			this->remove_connection(&(this->_connections[i]));
 		} else {
 			i++;

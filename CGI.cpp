@@ -41,16 +41,16 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
     //query string
     std::string query_string = "";
     if(request.get_target().find("?") != std::string::npos)
-    {   
+    {
         int pos_question_mark = request.get_target().find("?");
         query_string = request.get_target().substr(pos_question_mark + 1);
     }
     env.push_back("QUERY_STRING=" + query_string);
-        
-    
+
+
     //find content lenght in header map
     std::map<std::string, std::string>& headers = request.get_headers();
-    
+
     for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); it++)
     {
         if (it->first == "Content-Length")
@@ -181,7 +181,7 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         if (errno == EACCES)
         {
             conn.generate_error_page(webserver, "403", server_block);
-            if (conn.get_source().get_fd() != -1) 
+            if (conn.get_source().get_fd() != -1)
             {
                 return;
             }
@@ -206,6 +206,7 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
     {
         throw Exceptions("couldn't fork");
     }
+    conn.get_source().set_pid(pid);
     if(pid == 0) //child
     {
         //redirecting the pipes ends used by cgi
@@ -224,7 +225,7 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         // set up script_path, argv + envp, then exec
         //execve("/usr/bin/php-cgi", argv, envp);
         //const char* script_path = CGI::construct_script_path(request, server_block).c_str();
-        
+
         //DECIDING IF IT'S GET OR POST
         // if(/*post request*/)
         // {

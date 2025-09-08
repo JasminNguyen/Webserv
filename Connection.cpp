@@ -88,6 +88,29 @@ void	Connection::setHost(std::string host) {
 	this->_host = host;
 }
 
+bool	Connection::_process_uses_cgi() {
+	if (this->_source.get_pid()) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool	Connection::_is_cgi_finished() {
+	int pid = this->_source.get_pid();
+	int	*status = NULL;
+
+	int n = waitpid(pid, status, WNOHANG);
+	if (n == 1 && WIFEXITED(*status)) {
+		return true;
+	} else if (n == 0) {
+		std::cout << "CGI still running" << std::endl;
+		return false;
+	} else {
+		return false;
+	}
+}
+
 /* read from connection source and append to connection response */
 int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 	// char buf[1024];
@@ -116,19 +139,19 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 	int src_fd =this->_source.get_fd();
 	if(poll.revents & POLLIN)
 	{
-		while (true) 
+		while (true)
 		{
 			n = read(src_fd, buf, sizeof(buf));
 
-			if (n > 0) 
+			if (n > 0)
 			{
 				// we got some data, append exactly n bytes
 				this->_response.get_body().append(buf, n);
-			} 
+			}
 			else if (n == 0) // EOF!!!
 			{
 				break;
-			} 
+			}
 			else // n < 0: error case
 			{
 
@@ -160,12 +183,14 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		close(src_fd);
 		// remove fd from pollfd vector
 		webserver.remove_from_poll(src_fd);
+		// reset pid to 0
+		this->_source.set_pid(0);
 		std::cout << "How often???????????????????????" << std::endl;
 		this->_response.assemble();
 		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
 		return 1;
 
-	
+
 	return 0;/*else { // if POLLOUT
 		// chunk writing to source fd (cgi)
 		//note from jassy: so turns out I was wrong: the cgi pipe will give me POLLIN, not POLLOUT (since it's the out_pipe[0])
@@ -693,4 +718,26 @@ bool	Connection::is_timed_out() {
 	} else {
 		return false;
 	}
+}
+
+bool	Connection::is_cgi_broken() {
+	int *status = NULL;
+
+	int n = waitpid(this->_source.get_pid(), status, WNOHANG);
+	if (n == -1) {
+		throw Exceptions("Waitpid fails()");
+	} else if (n == 0) {
+		std::cout << "CGI is still running" << std::endl;
+		return false;
+	} else if (n > 0) {
+		std::cout << "cgi process is ended" << std::endl;
+		if (WIFEXITED(*status)) {
+			std::cout << "CGI terminated normally" << std::endl;
+			return false;
+		} else {
+			std::cout << "CGI broke" << std::endl;
+			return true;
+		}
+	}
+	return false;
 }

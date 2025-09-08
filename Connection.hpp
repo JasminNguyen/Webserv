@@ -59,6 +59,7 @@ class Connection {
 		bool									is_redirection_present(configParser::ServerConfig &server);
 		void									serve_redirection(Webserver &webserv, configParser::ServerConfig &server);
 		void									create_response(Webserver &webserv, configParser::ServerConfig &server);
+		bool									is_cgi_broken();
 
 	private:
 
@@ -71,6 +72,8 @@ class Connection {
 		std::string								_host;
 		int 									_location_block_index; //ADDED BY JASMIN
 		time_t									_last_active;
+		bool									_process_uses_cgi();
+		bool									_is_cgi_finished();
 
 };
 
