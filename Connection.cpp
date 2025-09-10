@@ -483,7 +483,7 @@ void	Connection::handle_request(Webserver &webserv) {
 	// create response
 	std::string target = this->_request.get_target();
 	//MAYBE WE SHOULD DECIDE HERE WHETHER WE ARE DEALING WITH A REDIRECTION (CGI AND FILES CAN BE AFFECTED) -> MATCH_LOCATION BLOCK HERE.
-	configParser::ServerConfig &server = this->match_location_block();
+	configParser::ServerConfig &server = this->match_location_block(webserv);
 	std::cout << "number of location blocks in request handling is: " << server.locations.size() << std::endl;
 	std::cout << "our location block index is: " << this->get_location_block_index() << std::endl;
 	std::cout << "location in handle request is here: " << &server.locations[this->get_location_block_index()].path << std::endl;
@@ -574,7 +574,7 @@ int	Connection::send_response(Webserver &webserv) {
 	}
 }
 
-configParser::ServerConfig& Connection::match_location_block()
+configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 {
 	// 1. match IP:port to listen (in the config file)
 	 /* -> Marcs vector of ServerConfigs in the Connection gives me the respective server blocks in question
@@ -662,10 +662,19 @@ configParser::ServerConfig& Connection::match_location_block()
 		}
 		else
 		{
-			std::cerr << "No match found in the location blocks" << std::endl;
 			// 	_response->set_status_code("404");
 			// _response->set_body("Not Found");
-			throw std::runtime_error("No match found in location blocks");
+			//throw std::runtime_error("No match found in location blocks");
+			std::cout << "No location block match found - WE ARE GENERATING THE 404 ERROR PAGE" << std::endl;
+			this->generate_error_page(webserv, "404", *matched_server);
+			if (this->_source.get_fd() != -1)
+			{
+				return;
+			}
+			//generate headers
+			this->_response.assemble();
+			webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+			return;
 		}
 
 	}

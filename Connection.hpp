@@ -36,7 +36,7 @@ class Connection {
 		// int										handle_socket_event(Webserver &webserver, pollfd &poll);
 		int										read_from_source(Webserver &webserver, pollfd &poll);
 		void									add_server(std::vector<configParser::ServerConfig>::iterator it);
-		configParser::ServerConfig				&match_location_block(); //finds the right server block or location to serve our static file or cgi
+		configParser::ServerConfig				&match_location_block(Webserver &webserv); //finds the right server block or location to serve our static file or cgi
 		bool									listeningSocketTriggered(int poll_fd);
 		bool									clientRequestIncoming(pollfd poll);
 		bool									clientExpectingResponse(pollfd poll);
