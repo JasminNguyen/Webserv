@@ -231,7 +231,7 @@ std::string	Connection::generate_directory_listing(std::string &file_path)
 		}
 		//putting response together
 		std::stringstream html;
-		html << "<html><head><title>Index of " << file_path << "</title></head><body>";
+		html << "<html><head><title>Index of " << file_path << "</title><link rel=\"icon\" href=\"data:,\"></head><body>";
 		html << "<h1>Index of " << file_path << "</h1>";
 		html << "<ul>";
 		struct dirent *entry;
@@ -591,13 +591,24 @@ configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 			break;
 		}
 	}
+	if(!host_header.empty())
+	{
+		size_t colon_pos = host_header.find(":");
+		std::cout << "colon_pos is: " << colon_pos << std::endl;
+		host_header = host_header.substr(0, host_header.size() - (host_header.size() - colon_pos));
+	}
 	// 3. match the host header to server block that are the Connection
 	std::vector<configParser::ServerConfig> &servers_in_question = this->getServers();
 	configParser::ServerConfig* matched_server = NULL;
+	std::cout << "size of servers in question is: " << servers_in_question.size() << std::endl;
 	for(std::vector<configParser::ServerConfig>::iterator it = servers_in_question.begin(); it != servers_in_question.end(); it++)
 	{
+		std::cout << "looking for a server name match" << std::endl;
+		std::cout << "server name is: " << it->server_name << std::endl;
+		std::cout << "host_header is: " << host_header << std::endl;
 		if(it->server_name == host_header) //matches!
 		{
+			std::cout << "WE FOUND A SERVER NAME MATCH" << std::endl;
 			matched_server = &(*it);
 			break;
 		}
@@ -667,14 +678,9 @@ configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 			//throw std::runtime_error("No match found in location blocks");
 			std::cout << "No location block match found - WE ARE GENERATING THE 404 ERROR PAGE" << std::endl;
 			this->generate_error_page(webserv, "404", *matched_server);
-			if (this->_source.get_fd() != -1)
-			{
-				return;
-			}
 			//generate headers
 			this->_response.assemble();
 			webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-			return;
 		}
 
 	}
