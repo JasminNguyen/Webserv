@@ -11,6 +11,7 @@ Connection::Connection() {
 	this->_host = "0.0.0.0";
 	this->_port = -1;
 	this->_last_active = time(0);
+	this->_location_block_index = -1;
 }
 
 Connection::Connection(Socket sock) {
@@ -19,6 +20,7 @@ Connection::Connection(Socket sock) {
 	this->_host = "0.0.0.0";
 	this->_port = -1;
 	this->_last_active = time(0);
+	this->_location_block_index = -1;
 }
 
 Connection::Connection(const Connection &ref) {
@@ -31,6 +33,7 @@ Connection::Connection(const Connection &ref) {
 	this->_host = ref._host;
 	this->_port = ref._port;
 	this->_last_active = time(0);
+	this->_location_block_index = -1;
 }
 
 Connection::~Connection() {
@@ -48,6 +51,7 @@ Connection &Connection::operator=(const Connection &ref) {
 		this->_host = ref._host;
 		this->_port = ref._port;
 		this->_last_active = time(0);
+		this->_location_block_index = -1;
 	}
 	return *this;
 }
@@ -136,7 +140,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 
 	char buf[4096];
 	ssize_t n;
-	int src_fd =this->_source.get_fd();
+	int src_fd = this->_source.get_fd();
 	if(poll.revents & POLLIN)
 	{
 		while (true)
@@ -159,9 +163,10 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			}
 		}
 	}
-
-
-
+		// close source fd
+		close(src_fd);
+		// remove fd from pollfd vector
+		webserver.remove_from_poll(src_fd);
 
 		// generate response parts
 		// this->_response.get_http_version() = "HTTP /1.1";
@@ -174,28 +179,23 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			this->_response.get_status_code() = "200";
 			this->_response.get_status_string() = "OK";
 		}
-		if (this->get_value_from_map("Connection") == "close")
+		if (this->get_value_from_map("Connection") == "close") {
 			this->_response.get_headers()["Connection"] = "close";
+		} else {
+			this->_response.get_headers()["Connection"] = "keep-alive";
+			this->_source.set_fd(-1);
+			this->_source.set_path("");
+			this->_source.set_pid(0);
+		}
 		//generate headers
-		this->_response.get_headers()["Connection"] = "close";
-		//this->_response.get_headers() = this->_request.get_headers();
-		// close source fd
-		close(src_fd);
-		// remove fd from pollfd vector
-		webserver.remove_from_poll(src_fd);
-		// reset pid to 0
-		this->_source.set_pid(0);
+		std::stringstream ss;
+		ss << this->_response.get_body().size();
+		this->_response.get_headers()["Content-Length"] = ss.str();
 		std::cout << "How often???????????????????????" << std::endl;
 		this->_response.assemble();
 		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
 		return 1;
-
-
-	return 0;/*else { // if POLLOUT
-		// chunk writing to source fd (cgi)
-		//note from jassy: so turns out I was wrong: the cgi pipe will give me POLLIN, not POLLOUT (since it's the out_pipe[0])
-		-> so we can actually use the same mechanism that we use for the static website (no extra else statement needed)
-	}*/
+	return 0;
 
 
 }
@@ -394,6 +394,9 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 							this->_response.set_status_code("200");
 							this->_response.set_status_string("OK");
 							// generate headers
+							std::stringstream ss;
+							ss << this->_response.get_body().size();
+							this->_response.get_headers()["Content-Length"] = ss.str();
 							this->_response.assemble();
 							webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 							return;
@@ -513,8 +516,6 @@ void	Connection::write_to_client(Webserver &webserv) {
 		if (n != response.size()) {
 			throw Exceptions("Not the whole response was sent.");
 		}
-		close(fd);
-		webserv.remove_from_poll(fd);
 		// if request has Connection: close"
 		if (this->get_value_from_map("Connection") == "close") {
 			close(fd);
@@ -522,6 +523,23 @@ void	Connection::write_to_client(Webserver &webserv) {
 		}
 		else {
 			webserv.remove_pollout_from_socket_events(fd);
+			// clean request and response ???
+
+			this->_request.get_raw() = "";
+			this->_response.get_raw() = "";
+			this->_response.get_body() = "";
+			/*
+			this->_request.get_body() = "";
+			this->_request.get_method() = "";
+			this->_request.get_http_version() = "";
+			this->_request.get_target() = "";
+
+			this->_response.get_http_version() = "";
+
+			this->_response.get_status_code() = "";
+			this->_response.get_status_string() = "";
+			*/
+
 		}
 		std::cout << "Response:" << std::endl << std::endl;
 		std::cout << response << std::endl;
@@ -533,40 +551,7 @@ void	Connection::write_to_client(Webserver &webserv) {
 int	Connection::send_response(Webserver &webserv) {
 	std::string &response = this->_response.get_raw();
 	if (response != "") {
-
 		this->write_to_client(webserv);
-
-		/*
-		std::cout << "trying to send.." << std::endl;
-		//std::cout << "Response: " << response << std::endl;
-		// send response - chunked writing based on buffer size
-		//std::cout << "fd: " << fd << std::endl;
-		size_t n = write(fd, response.c_str(), response.size());
-		//response = "";
-		if (n < 0) {
-			throw(std::exception());
-		} else {
-			if (n != response.size()) {
-				throw Exceptions("Not the whole response was sent.");
-			}
-			close(fd);
-			webserv.remove_from_poll(fd);
-			// if request has Connection: close"
-			if (this->get_value_from_map("Connection") == "close") {
-				close(fd);
-				webserv.remove_from_poll(fd);
-			}
-			else {
-				webserv.remove_pollout_from_socket_events(fd);
-			}
-				//this->reset_revents(webserv, fd);
-			(void)webserv;
-			std::cout << "Response:" << std::endl << std::endl;
-			std::cout << response << std::endl;
-			return 1;
-			// remove connection (this) from webserv - is that possible right here?? We are in a method on that instance
-		}
-		*/
 		return 1;
 	} else {
 		std::cout << "Response is still empty right now" << std::endl;

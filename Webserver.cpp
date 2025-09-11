@@ -142,9 +142,11 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 			// if request has Connection: close
 			if (con->get_value_from_map("Connection") == "close") {
 				this->remove_connection(con);
+				return 0;
+			} else {
+				con->set_time_stamp();
+				return 1;
 			}
-			this->remove_connection(con);
-			return 0;
 		} else {
 			con->set_time_stamp();
 			return 1;
@@ -173,16 +175,23 @@ void	Webserver::launch() {
 			throw(std::exception());
 		}
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
-			if (this->_polls[i].revents & POLLIN || this->_polls[i].revents & POLLOUT) {
+			if (this->_polls[i].revents & POLLERR + POLLHUP + POLLNVAL) {
+				std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
+				pollfd poll = this->_polls[i];
+				con = this->get_triggered_connection(poll.fd);
+				close(poll.fd);
+				this->remove_from_poll(poll.fd);
+				this->remove_connection(con);
+				n--;
+			}
+			else if (this->_polls[i].revents & POLLIN || this->_polls[i].revents & POLLOUT) {
 				pollfd poll = this->_polls[i];
 				con = this->get_triggered_connection(poll.fd);
 				i += this->event_router(con, poll);
 				n--;
 			} else {
-				if (this->_polls[i].revents != 0) {
-					std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
-					throw Exceptions("Error: other triggered event");
-				}
+				if (this->_polls[i].revents != 0)
+					throw Exceptions("Other event triggered!");
 				i++;
 			}
 		}
@@ -203,7 +212,7 @@ void	Webserver::parse_config(const char *config_file) {
 void	Webserver::add_pollout_to_socket_events(int fd) {
 	for (std::vector<pollfd>::iterator it = this->_polls.begin(); it != this->_polls.end(); it++) {
 		if (it->fd == fd) {
-			it->events |= POLLOUT;
+			it->events = POLLOUT;
 			break;
 		}
 	}

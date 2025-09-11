@@ -78,5 +78,8 @@ void Connection::generate_error_page(Webserver &webserv, std::string error_code,
         this->get_response().set_body(oss.str());
         this->get_response().set_status_code(error_code);
         this->get_response().set_status_string(error_message);
-    }  
+        std::stringstream ss;
+        ss << this->_response.get_body().size();
+        this->_response.get_headers()["Content-Length"] = ss.str();
+    }
 }
