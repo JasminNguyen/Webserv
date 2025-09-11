@@ -594,7 +594,7 @@ configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 	if(!host_header.empty())
 	{
 		size_t colon_pos = host_header.find(":");
-		std::cout << "colon_pos is: " << colon_pos << std::endl;
+		//std::cout << "colon_pos is: " << colon_pos << std::endl;
 		host_header = host_header.substr(0, host_header.size() - (host_header.size() - colon_pos));
 	}
 	// 3. match the host header to server block that are the Connection
@@ -603,9 +603,9 @@ configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 	std::cout << "size of servers in question is: " << servers_in_question.size() << std::endl;
 	for(std::vector<configParser::ServerConfig>::iterator it = servers_in_question.begin(); it != servers_in_question.end(); it++)
 	{
-		std::cout << "looking for a server name match" << std::endl;
-		std::cout << "server name is: " << it->server_name << std::endl;
-		std::cout << "host_header is: " << host_header << std::endl;
+		//std::cout << "looking for a server name match" << std::endl;
+		//std::cout << "server name is: " << it->server_name << std::endl;
+		//std::cout << "host_header is: " << host_header << std::endl;
 		if(it->server_name == host_header) //matches!
 		{
 			std::cout << "WE FOUND A SERVER NAME MATCH" << std::endl;

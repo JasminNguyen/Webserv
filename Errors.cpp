@@ -22,6 +22,7 @@ std::string find_error_message(std::string error_code)
 void Connection::generate_error_page(Webserver &webserv, std::string error_code, configParser::ServerConfig& server)
 {
     std::string error_message = find_error_message(error_code);
+    bool local_error_page_found = false;
     //check if there is a provided error page in config file
     if(!server.path_error_page.empty())
     {
@@ -34,6 +35,7 @@ void Connection::generate_error_page(Webserver &webserv, std::string error_code,
             if(error_code == it->first) //found matching right error code in the config file
             {
                 std::cout << "We are using a local error page!" << std::endl;
+                local_error_page_found = true;
                 // //find the path to the error page -> DO I PUT THE PATH TO THE ERROR PAGE IN SOURCE?
                 // this->get_source().set_path(it->second);
                 // //DO I SET THE STATUS CODE/message/etc HERE AS WELL?
@@ -60,9 +62,9 @@ void Connection::generate_error_page(Webserver &webserv, std::string error_code,
             }
         }
     }
-    else
+    if(!local_error_page_found)
     {
-        std::cout << "We are generating an error page dynamically!" << std::endl;
+         std::cout << "We are generating an error page dynamically!" << std::endl;
         //generate an error page dynamicallyy
        std::ostringstream oss;
         oss << "<html><head><title>" << error_code << " " << error_message << "</title></head>\n"
@@ -76,5 +78,5 @@ void Connection::generate_error_page(Webserver &webserv, std::string error_code,
         this->get_response().set_body(oss.str());
         this->get_response().set_status_code(error_code);
         this->get_response().set_status_string(error_message);
-    }
+    }  
 }
