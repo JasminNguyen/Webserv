@@ -17,6 +17,8 @@ class Socket {
 		int			get_fd();
 		std::string	get_type();
 
+		void		set_fd(int fd);
+
 	protected:
 
 		int			_fd;

@@ -26,3 +26,7 @@ int	Socket::get_fd() {
 std::string Socket::get_type() {
 	return this->_type;
 }
+
+void	Socket::set_fd(int fd) {
+	this->_fd = fd;
+}
