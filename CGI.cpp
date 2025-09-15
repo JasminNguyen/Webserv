@@ -213,6 +213,8 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         dup2(in_pipe[0], STDIN_FILENO); //cgi reads from here
         dup2(out_pipe[1], STDOUT_FILENO); //cgi writes here
 
+        dup2(out_pipe[1], STDERR_FILENO); // send CGI stderr to the same pipe
+
         //closing unused pipe ends (those that used by server)
         close(in_pipe[1]);
         close(out_pipe[0]);
