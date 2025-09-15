@@ -101,6 +101,7 @@ void	Webserver::remove_from_poll(int fd) {
 void	Webserver::remove_connection(Connection *con) {
 	for (std::vector<Connection>::iterator it = this->_connections.begin(); it != this->_connections.end(); it++) {
 		if (con == &(*it)) {
+			it->close_fds();
 			this->_connections.erase(it);
 			return ;
 		}
@@ -179,7 +180,6 @@ void	Webserver::launch() {
 				std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
 				pollfd poll = this->_polls[i];
 				con = this->get_triggered_connection(poll.fd);
-				close(poll.fd);
 				this->remove_from_poll(poll.fd);
 				this->remove_connection(con);
 				n--;
@@ -231,7 +231,6 @@ void	Webserver::_check_for_timeouts() {
 	for (size_t i = 0; i < this->_connections.size(); ) {
 		if (this->_connections[i].get_socket().get_type() != "Listening Socket" && this->_connections[i].is_timed_out()) {
 			std::cout << "Connection is timed out!" << std::endl;
-			close(this->_connections[i].get_socket().get_fd());
 			this->remove_from_poll(this->_connections[i].get_socket().get_fd());
 			this->remove_connection(&(this->_connections[i]));
 		} else {
@@ -244,7 +243,6 @@ void	Webserver::_check_for_broken_cgi() {
 	for (size_t i = 0; i < this->_connections.size(); ) {
 		if (this->_connections[i].get_source().get_pid() && this->_connections[i].is_cgi_broken()) {
 			std::cout << "CGI broke!" << std::endl;
-			close(this->_connections[i].get_source().get_fd());
 			this->remove_from_poll(this->_connections[i].get_source().get_fd());
 			this->remove_connection(&(this->_connections[i]));
 		} else {

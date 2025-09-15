@@ -167,6 +167,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		close(src_fd);
 		// remove fd from pollfd vector
 		webserver.remove_from_poll(src_fd);
+		this->_source.set_fd(-1);
 
 		// generate response parts
 		// this->_response.get_http_version() = "HTTP /1.1";
@@ -183,7 +184,6 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			this->_response.get_headers()["Connection"] = "close";
 		} else {
 			this->_response.get_headers()["Connection"] = "keep-alive";
-			this->_source.set_fd(-1);
 			this->_source.set_path("");
 			this->_source.set_pid(0);
 		}
@@ -549,6 +549,9 @@ void	Connection::write_to_client(Webserver &webserv) {
 
 /* if response != "", send to client */
 int	Connection::send_response(Webserver &webserv) {
+	if (this->_process_uses_cgi() && this->_is_cgi_finished() == false) {
+		return 0;
+	}
 	std::string &response = this->_response.get_raw();
 	if (response != "") {
 		this->write_to_client(webserv);
@@ -772,4 +775,15 @@ bool	Connection::is_cgi_broken() {
 		}
 	}
 	return false;
+}
+
+void	Connection::close_fds() {
+	if (this->_sock.get_fd() >= 0) {
+		close(this->_sock.get_fd());
+		this->_sock.set_fd(-1);
+	}
+	if (this->_source.get_fd() >= 0) {
+		close(this->_source.get_fd());
+		this->_source.set_fd(-1);
+	}
 }
