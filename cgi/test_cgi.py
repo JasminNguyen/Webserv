@@ -13,6 +13,7 @@ print("<h1>Hello from Python CGI!</h1>")
 # Show some environment variables (CGI passes these)
 #print("<h2>Environment Variables</h2>")
 #print("<ul>")
+print("CWD:", os.getcwd())
 for key, value in os.environ.items():
       print(f"<li>{key} = {value}</li>")
 #print("</ul>")
