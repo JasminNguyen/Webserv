@@ -117,6 +117,11 @@ bool	Connection::_is_cgi_finished() {
 
 /* read from connection source and append to connection response */
 int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
+
+	if (this->_process_uses_cgi() && this->_is_cgi_finished() == false) {
+		return 0;
+	}
+
 	// char buf[1024];
 	// int src_fd = this->_source.get_fd();
 	// if (poll.revents & POLLIN) {
@@ -158,8 +163,8 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			}
 			else // n < 0: error case
 			{
-
-				throw Exceptions("Error: read failed in read_from_source\n");
+				webserver.remove_from_poll(src_fd);
+				return -1;
 			}
 		}
 	}
@@ -478,11 +483,14 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 }
 
 /* read and process request to produce response */
-void	Connection::handle_request(Webserver &webserv) {
+int	Connection::handle_request(Webserver &webserv) {
 	if (this->last_request_process_unfinished()) {
 		this->dismiss_old_request(webserv);
 	}
-	this->_request.process(this->_sock.get_fd());
+	if (this->_request.process(this->_sock.get_fd()) == -1) {
+		webserv.remove_from_poll(this->_sock.get_fd());
+		return -1;
+	}
 	// create response
 	std::string target = this->_request.get_target();
 	//MAYBE WE SHOULD DECIDE HERE WHETHER WE ARE DEALING WITH A REDIRECTION (CGI AND FILES CAN BE AFFECTED) -> MATCH_LOCATION BLOCK HERE.
@@ -494,14 +502,15 @@ void	Connection::handle_request(Webserver &webserv) {
 
 	if(this->is_redirection_present(server)) {
 		this->serve_redirection(webserv, server);
-		return;
+		return 1;
 	}
 
 	// CHECK FOR POST, GET, DELETE METHOD
 	this->create_response(webserv, server);
+	return 1;
 }
 
-void	Connection::write_to_client(Webserver &webserv) {
+int	Connection::write_to_client(Webserver &webserv) {
 	int fd = this->get_socket().get_fd();
 	std::string &response = this->_response.get_raw();
 
@@ -511,7 +520,10 @@ void	Connection::write_to_client(Webserver &webserv) {
 	//std::cout << "fd: " << fd << std::endl;
 	size_t n = write(fd, response.c_str(), response.size());
 	if (n < 0) {
-		throw(std::exception());
+		close(fd);
+		webserv.remove_from_poll(fd);
+		this->get_socket().set_fd(-1);
+		return -1;
 	} else {
 		if (n != response.size()) {
 			throw Exceptions("Not the whole response was sent.");
@@ -520,6 +532,7 @@ void	Connection::write_to_client(Webserver &webserv) {
 		if (this->get_value_from_map("Connection") == "close") {
 			close(fd);
 			webserv.remove_from_poll(fd);
+			this->get_socket().set_fd(-1);
 		}
 		else {
 			webserv.remove_pollout_from_socket_events(fd);
@@ -543,6 +556,7 @@ void	Connection::write_to_client(Webserver &webserv) {
 		}
 		std::cout << "Response:" << std::endl << std::endl;
 		std::cout << response << std::endl;
+		return 1;
 	}
 }
 
@@ -554,8 +568,11 @@ int	Connection::send_response(Webserver &webserv) {
 	}
 	std::string &response = this->_response.get_raw();
 	if (response != "") {
-		this->write_to_client(webserv);
-		return 1;
+		if (this->write_to_client(webserv) == - 1) {
+			return -1;
+		} else {
+			return 1;
+		}
 	} else {
 		std::cout << "Response is still empty right now" << std::endl;
 		return 0;

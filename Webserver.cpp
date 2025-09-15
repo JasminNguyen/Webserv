@@ -101,6 +101,8 @@ void	Webserver::remove_from_poll(int fd) {
 void	Webserver::remove_connection(Connection *con) {
 	for (std::vector<Connection>::iterator it = this->_connections.begin(); it != this->_connections.end(); it++) {
 		if (con == &(*it)) {
+			this->remove_from_poll(con->get_socket().get_fd());
+			this->remove_from_poll(con->get_source().get_fd());
 			it->close_fds();
 			this->_connections.erase(it);
 			return ;
@@ -127,19 +129,27 @@ Connection *Webserver::get_triggered_connection(int poll_fd) {
 }
 
 int	Webserver::event_router(Connection *con, pollfd poll) {
+	int read_status = 0;
+	int send_status = 0;
+
 	if (con->listeningSocketTriggered(poll.fd)) {
 		std::cout << "POLLIN on LS: " << poll.fd << std::endl;
 		con->accept_request(*this);
 		return 1;
 	} else if (con->clientRequestIncoming(poll)) {
 		std::cout << "POLLIN with fd: " << poll.fd << std::endl;
-		con->handle_request(*this);
-		con->set_time_stamp();
-		return 1;
+		if (con->handle_request(*this) == -1) {
+			this->remove_connection(con);
+			return 0;
+		} else {
+			con->set_time_stamp();
+			return 1;
+		}
 	} else if (con->clientExpectingResponse(poll)) {
 		std::cout << "POLLOUT with fd: " << poll.fd << std::endl;
 		std::cout << "poll revents: " << poll.revents << std::endl;
-		if (con->send_response(*this)) {
+		send_status = con->send_response(*this);
+		if (send_status == 1) {
 			// if request has Connection: close
 			if (con->get_value_from_map("Connection") == "close") {
 				this->remove_connection(con);
@@ -148,13 +158,20 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 				con->set_time_stamp();
 				return 1;
 			}
-		} else {
+		} else if (send_status == 0) {
 			con->set_time_stamp();
 			return 1;
+		} else {
+			this->remove_connection(con);
+			return 0;
 		}
 	} else if (con->sourceTriggered(poll.fd)) {
 		std::cout << "POLLIN on SOURCE: " << poll.fd << std::endl;
-		if (con->read_from_source(*this, poll)) {
+		read_status = con->read_from_source(*this, poll);
+		if (read_status == 1) {
+			return 0;
+		} else if (read_status == -1) {
+			this->remove_connection(con);
 			return 0;
 		} else {
 			return 1;

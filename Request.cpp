@@ -63,7 +63,7 @@ std::string	&Request::get_body() {
 	return this->_body;
 }
 
-void	Request::process(int sock_fd) {
+int	Request::process(int sock_fd) {
 	char buf[1024];
 	// read into this->_req->_raw
 	std::cout << "handle request on client socket" << std::endl;
@@ -72,13 +72,14 @@ void	Request::process(int sock_fd) {
 		this->_raw.append(buf);
 	}
 	if (n < 0) {
-		throw(std::exception());
+		return -1;
 	} else { // difference between n == 0 and n > 0 ???
 		this->_raw.append(buf);
 	}
 	std::cout << "We are parsing the request" << std::endl;
 	std::cout << std::endl << this->_raw << std::endl;
 	this->parse();
+	return 1;
 }
 
 void	Request::parse() {

@@ -42,7 +42,7 @@ class Connection {
 		bool									clientExpectingResponse(pollfd poll);
 		bool									sourceTriggered(int poll_fd);
 		void									accept_request(Webserver &webserv);
-		void									handle_request(Webserver &webserv);
+		int										handle_request(Webserver &webserv);
 		int										send_response(Webserver &webserv);
 		void									generate_error_page(Webserver &webserv, std::string error_code, configParser::ServerConfig& server);
 		int										has_index_file(const std::string& dir_path, const std::string& index_file_name);
@@ -54,7 +54,7 @@ class Connection {
 		bool									is_timed_out();
 		bool									last_request_process_unfinished();
 		void									dismiss_old_request(Webserver &webserv);
-		void									write_to_client(Webserver &webserv);
+		int										write_to_client(Webserver &webserv);
 		bool									request_requires_cgi(configParser::ServerConfig &server);
 		bool									is_redirection_present(configParser::ServerConfig &server);
 		void									serve_redirection(Webserver &webserv, configParser::ServerConfig &server);
