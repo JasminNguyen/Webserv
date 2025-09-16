@@ -62,6 +62,8 @@ class Connection {
 		bool									is_cgi_broken();
 		int										check_content_length_too_big(Webserver &webserv, configParser::ServerConfig & server);
 		void									close_fds();
+		bool									_process_uses_cgi();
+		bool									_is_cgi_finished();
 
 	private:
 
@@ -74,9 +76,6 @@ class Connection {
 		std::string								_host;
 		int 									_location_block_index; //ADDED BY JASMIN
 		time_t									_last_active;
-
-		bool									_process_uses_cgi();
-		bool									_is_cgi_finished();
 
 };
 

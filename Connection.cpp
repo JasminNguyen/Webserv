@@ -102,15 +102,21 @@ bool	Connection::_process_uses_cgi() {
 
 bool	Connection::_is_cgi_finished() {
 	int pid = this->_source.get_pid();
-	int	*status = NULL;
+	int	status;
 
-	int n = waitpid(pid, status, WNOHANG);
-	if (n == 1 && WIFEXITED(*status)) {
+	int n = -5;
+	n = waitpid(pid, &status, WNOHANG);
+	
+	if (n == 1 && WIFEXITED(status)) {
+		this->_source.set_pid(0);
 		return true;
 	} else if (n == 0) {
 		std::cout << "CGI still running" << std::endl;
 		return false;
 	} else {
+		std::cout << "we go in here" << std::endl;
+		std::cout << "n: " << n << std::endl;
+		throw Exceptions("Waitpit call has failed here");
 		return false;
 	}
 }
@@ -118,9 +124,9 @@ bool	Connection::_is_cgi_finished() {
 /* read from connection source and append to connection response */
 int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 
-	if (this->_process_uses_cgi() && this->_is_cgi_finished() == false) {
-		return 0;
-	}
+	// if (this->_process_uses_cgi() && !(poll.revents & POLLHUP)) {
+	// 	return 0;
+	// }
 
 	// char buf[1024];
 	// int src_fd = this->_source.get_fd();
@@ -563,9 +569,9 @@ int	Connection::write_to_client(Webserver &webserv) {
 
 /* if response != "", send to client */
 int	Connection::send_response(Webserver &webserv) {
-	if (this->_process_uses_cgi() && this->_is_cgi_finished() == false) {
-		return 0;
-	}
+	// if (this->_process_uses_cgi() && this->_is_cgi_finished() == false) {
+	// 	return 0;
+	// }
 	std::string &response = this->_response.get_raw();
 	if (response != "") {
 		if (this->write_to_client(webserv) == - 1) {
@@ -773,17 +779,18 @@ bool	Connection::is_timed_out() {
 }
 
 bool	Connection::is_cgi_broken() {
-	int *status = NULL;
+	int status;
 
-	int n = waitpid(this->_source.get_pid(), status, WNOHANG);
+	int n = waitpid(this->_source.get_pid(), &status, WNOHANG);
 	if (n == -1) {
 		throw Exceptions("Waitpid fails()");
 	} else if (n == 0) {
 		std::cout << "CGI is still running" << std::endl;
 		return false;
 	} else if (n > 0) {
+		this->_source.set_pid(0);
 		std::cout << "cgi process is ended" << std::endl;
-		if (WIFEXITED(*status)) {
+		if (WIFEXITED(status)) {
 			std::cout << "CGI terminated normally" << std::endl;
 			return false;
 		} else {

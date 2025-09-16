@@ -194,9 +194,17 @@ void	Webserver::launch() {
 		}
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
 			if (this->_polls[i].revents & POLLERR + POLLHUP + POLLNVAL) {
+				
 				std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
 				pollfd poll = this->_polls[i];
 				con = this->get_triggered_connection(poll.fd);
+				// if(this->_polls[i].revents & POLLHUP)
+				// {
+				// 	if (con->_process_uses_cgi() && con->_is_cgi_finished() == true) {
+				// 		i += this->event_router(con, poll);
+				// 		continue;
+				// 	}
+				// }
 				this->remove_from_poll(poll.fd);
 				this->remove_connection(con);
 				n--;
