@@ -163,7 +163,7 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
 std::vector<std::string> configParser::tokenize(std::string config_file)
 {
     std::vector<std::string> tokens;
-    std::ifstream file(config_file);//opening the file
+    std::ifstream file(config_file.c_str());//opening the file
     std::string line;
     std::string token;
     int opening_brackets = 0;

@@ -20,6 +20,9 @@
 # include <sys/stat.h>
 # include <dirent.h>
 # include <time.h>
+# include <sys/wait.h> 
+# include <sys/param.h>
+
 
 # define TIME_OUT 30
 

@@ -77,7 +77,9 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
             env.push_back("SERVER_NAME=" + it->second);
         }
     }
-    env.push_back("SERVER_PORT=" + std::to_string(server_block.port));
+	std::stringstream ss;
+	ss << server_block.port;
+    env.push_back("SERVER_PORT=" + ss.str());
     env.push_back("GATEWAY_INTERFACE=CGI/1.1");
 
     int array_length = env.size();
@@ -104,11 +106,11 @@ char** CGI::construct_argv(const char* &script_path,Request &request)
     }
     else if(request.get_target().substr(request.get_target().size() - 4).compare(".php") == 0)
     {
-        argv[0] = (char*)"/usr/local/bin/php";
+        argv[0] = (char*)"/usr/bin/php";
     }
     else if(request.get_target().substr(request.get_target().size() - 3).compare(".sh") == 0)
     {
-        argv[0] = (char*)"/bin/sh";
+        argv[0] = (char*)"/usr/bin/sh";
     }
     argv[1] = converted_script_path;  // argv[1] = script_path that I constructed earlier
     argv[2] = NULL;   // end of array
@@ -236,7 +238,7 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
 
         const char *script_path = conn.get_source().get_path().c_str();
         //const char *script_path = request.get_target().c_str();
-        //std::cout << "script path in run_cgi(): " << script_path << std::endl;
+       // std::cout << "script path in run_cgi(): " << script_path << std::endl;
 
         char **argv = construct_argv(script_path, request);
         char **envp = construct_envp(request, server_block);

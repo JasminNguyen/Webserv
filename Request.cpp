@@ -100,7 +100,7 @@ void	Request::parse() {
 	//MODIFIED BY JASMIN -> let Marc review this
 	while (std::getline(ss, line)) {
 		if (!line.empty() && line != "\r") {
-			if (line.back() == '\r')
+			if (line[line.size() - 1] == '\r')
 			{
 				line.erase(line.size()-1);
 			}
