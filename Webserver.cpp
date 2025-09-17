@@ -193,23 +193,16 @@ void	Webserver::launch() {
 			throw(std::exception());
 		}
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
-			if (this->_polls[i].revents & POLLERR + POLLHUP + POLLNVAL) {
+			if (this->_polls[i].revents & POLLERR + POLLNVAL) {
 				
 				std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
 				pollfd poll = this->_polls[i];
 				con = this->get_triggered_connection(poll.fd);
-				// if(this->_polls[i].revents & POLLHUP)
-				// {
-				// 	if (con->_process_uses_cgi() && con->_is_cgi_finished() == true) {
-				// 		i += this->event_router(con, poll);
-				// 		continue;
-				// 	}
-				// }
 				this->remove_from_poll(poll.fd);
 				this->remove_connection(con);
 				n--;
 			}
-			else if (this->_polls[i].revents & POLLIN || this->_polls[i].revents & POLLOUT) {
+			else if (this->_polls[i].revents & POLLIN + POLLOUT + POLLHUP) {
 				pollfd poll = this->_polls[i];
 				con = this->get_triggered_connection(poll.fd);
 				i += this->event_router(con, poll);
@@ -253,9 +246,32 @@ void	Webserver::remove_pollout_from_socket_events(int fd) {
 }
 
 void	Webserver::_check_for_timeouts() {
+	int status;
 	for (size_t i = 0; i < this->_connections.size(); ) {
 		if (this->_connections[i].get_socket().get_type() != "Listening Socket" && this->_connections[i].is_timed_out()) {
 			std::cout << "Connection is timed out!" << std::endl;
+			if(this->_connections[i]._process_uses_cgi() && this->_connections[i]._is_cgi_still_running())
+			{
+				kill(this->_connections[i].get_source().get_pid(), SIGTERM);
+				int n = waitpid(this->_connections[i].get_source().get_pid(), &status, 0);
+				if (n > 0) {
+					this->_connections[i].get_source().set_cgi_finished(true);
+				}
+				configParser::ServerConfig server = this->_connections[i].match_location_block(*this);
+				this->remove_from_poll(this->_connections[i].get_source().get_fd());
+				close(this->_connections[i].get_source().get_fd());
+				this->_connections[i].get_source().set_fd(-1);
+
+				this->_connections[i].generate_error_page(*this, "504", server);
+				if (this->_connections[i].get_source().get_fd() != -1)
+				{
+					return;
+				}
+				//generate headers
+				this->_connections[i].get_response().assemble();
+				this->add_pollout_to_socket_events(this->_connections[i].get_socket().get_fd());
+				return;
+			}
 			this->remove_from_poll(this->_connections[i].get_socket().get_fd());
 			this->remove_connection(&(this->_connections[i]));
 		} else {
@@ -266,7 +282,7 @@ void	Webserver::_check_for_timeouts() {
 
 void	Webserver::_check_for_broken_cgi() {
 	for (size_t i = 0; i < this->_connections.size(); ) {
-		if (this->_connections[i].get_source().get_pid() && this->_connections[i].is_cgi_broken()) {
+		if (this->_connections[i].get_source().get_pid() && !this->_connections[i].get_source().get_cgi_finished() && this->_connections[i].is_cgi_broken()) {
 			std::cout << "CGI broke!" << std::endl;
 			this->remove_from_poll(this->_connections[i].get_source().get_fd());
 			this->remove_connection(&(this->_connections[i]));

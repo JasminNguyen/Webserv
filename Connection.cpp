@@ -100,19 +100,16 @@ bool	Connection::_process_uses_cgi() {
 	}
 }
 
-bool	Connection::_is_cgi_finished() {
+bool	Connection::_is_cgi_still_running() {
 	int pid = this->_source.get_pid();
 	int	status;
 
 	int n = -5;
 	n = waitpid(pid, &status, WNOHANG);
 	
-	if (n == 1 && WIFEXITED(status)) {
-		this->_source.set_pid(0);
+	if (n == 0) {
+		//std::cout << "CGI still running" << std::endl;
 		return true;
-	} else if (n == 0) {
-		std::cout << "CGI still running" << std::endl;
-		return false;
 	} else {
 		std::cout << "we go in here" << std::endl;
 		std::cout << "n: " << n << std::endl;
@@ -150,34 +147,33 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 	// }
 
 	char buf[4096];
-	ssize_t n;
+	ssize_t n = -2;
 	int src_fd = this->_source.get_fd();
-	if(poll.revents & POLLIN)
+	if(poll.revents & POLLIN + POLLHUP)
 	{
-		while (true)
-		{
-			n = read(src_fd, buf, sizeof(buf));
+		
+		n = read(src_fd, buf, sizeof(buf));
 
-			if (n > 0)
-			{
-				// we got some data, append exactly n bytes
-				this->_response.get_body().append(buf, n);
-			}
-			else if (n == 0) // EOF!!!
-			{
-				break;
-			}
-			else // n < 0: error case
-			{
-				webserver.remove_from_poll(src_fd);
-				return -1;
-			}
+		if (n >= 0)
+		{
+			// we got some data, append exactly n bytes
+			this->_response.get_body().append(buf, n);
 		}
+		else // n < 0: error case
+		{
+			webserver.remove_from_poll(src_fd);
+			return -1;
+		}
+		
 	}
+	if(n == 0)
+	{
+		int status;
 		// close source fd
 		close(src_fd);
 		// remove fd from pollfd vector
 		webserver.remove_from_poll(src_fd);
+		waitpid(this->_source.get_pid(), &status, 0);
 		this->_source.set_fd(-1);
 
 		// generate response parts
@@ -206,6 +202,8 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		this->_response.assemble();
 		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
 		return 1;
+	}
+		
 	return 0;
 
 
@@ -558,7 +556,7 @@ int	Connection::write_to_client(Webserver &webserv) {
 			this->_response.get_status_code() = "";
 			this->_response.get_status_string() = "";
 			*/
-
+			this->get_source().set_fd(-1);
 		}
 		std::cout << "Response:" << std::endl << std::endl;
 		std::cout << response << std::endl;
@@ -569,9 +567,6 @@ int	Connection::write_to_client(Webserver &webserv) {
 
 /* if response != "", send to client */
 int	Connection::send_response(Webserver &webserv) {
-	// if (this->_process_uses_cgi() && this->_is_cgi_finished() == false) {
-	// 	return 0;
-	// }
 	std::string &response = this->_response.get_raw();
 	if (response != "") {
 		if (this->write_to_client(webserv) == - 1) {
@@ -785,10 +780,10 @@ bool	Connection::is_cgi_broken() {
 	if (n == -1) {
 		throw Exceptions("Waitpid fails()");
 	} else if (n == 0) {
-		std::cout << "CGI is still running" << std::endl;
+		//std::cout << "CGI is still running" << std::endl;
 		return false;
 	} else if (n > 0) {
-		this->_source.set_pid(0);
+		this->_source.set_cgi_finished(true);
 		std::cout << "cgi process is ended" << std::endl;
 		if (WIFEXITED(status)) {
 			std::cout << "CGI terminated normally" << std::endl;

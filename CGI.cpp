@@ -204,6 +204,7 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         throw Exceptions("couldn't pipe");
     }
     pid_t pid = fork();
+	std::cout << "pid is: " << pid << std::endl;
     if(pid == -1)
     {
         throw Exceptions("couldn't fork");

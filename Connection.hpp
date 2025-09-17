@@ -63,7 +63,7 @@ class Connection {
 		int										check_content_length_too_big(Webserver &webserv, configParser::ServerConfig & server);
 		void									close_fds();
 		bool									_process_uses_cgi();
-		bool									_is_cgi_finished();
+		bool									_is_cgi_still_running();
 
 	private:
 

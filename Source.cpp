@@ -5,6 +5,7 @@ Source::Source() {
     this->_fd = -1;
     this->_path = "";
     this->_pid = 0;
+	this->_cgi_finished = 0;
 }
 
 Source::Source(const Source &ref) {
@@ -12,6 +13,7 @@ Source::Source(const Source &ref) {
     this->_fd = ref._fd;
     this->_path = ref._path;
     this->_pid = ref._pid;
+	this->_cgi_finished = 0;
 }
 
 Source::~Source() {
@@ -24,6 +26,7 @@ Source &Source::operator=(const Source &ref) {
         this->_fd = ref._fd;
         this->_path = ref._path;
         this->_pid = ref._pid;
+		this->_cgi_finished = 0;
     }
     return *this;
 }
@@ -40,6 +43,11 @@ int &Source::get_pid() {
     return this->_pid;
 }
 
+bool &Source::get_cgi_finished() {
+	return this->_cgi_finished;
+}
+
+
 void    Source::set_path(std::string path) {
     this->_path = path;
 }
@@ -50,6 +58,11 @@ void    Source::set_fd(int fd) {
 
 void    Source::set_pid(int pid) {
     this->_pid = pid;
+}
+
+void 	Source::set_cgi_finished(bool status)
+{
+	this->_cgi_finished = status;
 }
 
 bool Source::operator<(const Source &ref) const {
