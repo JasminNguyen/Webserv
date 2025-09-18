@@ -721,7 +721,7 @@ bool	Connection::listeningSocketTriggered(int poll_fd) {
 bool	Connection::clientRequestIncoming(pollfd poll) {
 	int socket_fd = this->get_socket().get_fd();
 
-	if (socket_fd == poll.fd && poll.revents & POLLIN) {
+	if (socket_fd == poll.fd && poll.revents & POLLIN + POLLHUP) {
 		return true;
 	} else {
 		return false;
