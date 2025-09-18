@@ -502,6 +502,11 @@ int	Connection::handle_request(Webserver &webserv) {
 		webserv.remove_from_poll(this->_sock.get_fd());
 		return -1;
 	}
+	if(this->_request.get_raw() == "")
+	{
+		webserv.remove_from_poll(this->_sock.get_fd());
+		return -1;
+	}
 	// create response
 	std::string target = this->_request.get_target();
 	//MAYBE WE SHOULD DECIDE HERE WHETHER WE ARE DEALING WITH A REDIRECTION (CGI AND FILES CAN BE AFFECTED) -> MATCH_LOCATION BLOCK HERE.
