@@ -151,7 +151,7 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 		send_status = con->send_response(*this);
 		if (send_status == 1) {
 			// if request has Connection: close
-			if (con->get_value_from_map("Connection") == "close") {
+			if (con->get_value_from_response_map("Connection") == "close") {
 				this->remove_connection(con);
 				return 0;
 			} else {
@@ -194,7 +194,7 @@ void	Webserver::launch() {
 		}
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
 			if (this->_polls[i].revents & POLLERR + POLLNVAL) {
-				
+
 				std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
 				pollfd poll = this->_polls[i];
 				con = this->get_triggered_connection(poll.fd);
@@ -259,7 +259,7 @@ void	Webserver::_check_for_timeouts() {
 				}
 				this->_connections[i].get_source().set_pid(0);
 				this->_connections[i].set_time_stamp();
-				this->_connections[i].get_response().set_body(""); 
+				this->_connections[i].get_response().set_body("");
 				configParser::ServerConfig server = this->_connections[i].match_location_block(*this);
 				this->remove_from_poll(this->_connections[i].get_source().get_fd());
 				close(this->_connections[i].get_source().get_fd());

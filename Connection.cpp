@@ -106,7 +106,7 @@ bool	Connection::_is_cgi_still_running() {
 
 	int n = -5;
 	n = waitpid(pid, &status, WNOHANG);
-	
+
 	if (n == 0) {
 		//std::cout << "CGI still running" << std::endl;
 		return true;
@@ -148,7 +148,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 	int src_fd = this->_source.get_fd();
 	if(poll.revents & POLLIN + POLLHUP)
 	{
-		
+
 		bytes_read = read(src_fd, buf, sizeof(buf));
 
 		if (bytes_read >= 0)
@@ -161,22 +161,22 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			webserver.remove_from_poll(src_fd);
 			return -1;
 		}
-		
+
 	}
 	if(bytes_read == 0)
 	{
 		int status;
 		int n = 0;
-		
+
 		if(this->get_source().get_pid())
 		{
-			n = waitpid(this->_source.get_pid(), &status, 0);	
+			n = waitpid(this->_source.get_pid(), &status, 0);
 			if(n > 0)
 			{
 				this->_source.set_cgi_finished(true);
 			}
-		}		
-	
+		}
+
 		// close source fd
 		close(src_fd);
 		// remove fd from pollfd vector
@@ -194,7 +194,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			this->_response.get_status_code() = "200";
 			this->_response.get_status_string() = "OK";
 		}
-		if (this->get_value_from_map("Connection") == "close") {
+		if (this->get_value_from_request_map("Connection") == "close") {
 			this->_response.get_headers()["Connection"] = "close";
 		} else {
 			this->_response.get_headers()["Connection"] = "keep-alive";
@@ -210,7 +210,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
 		return 1;
 	}
-		
+
 	return 0;
 
 
@@ -334,6 +334,7 @@ bool	Connection::is_redirection_present(configParser::ServerConfig &server) {
 void	Connection::serve_redirection(Webserver &webserv, configParser::ServerConfig &server) {
 	std::cout << "We are redirecting" << std::endl;
 		this->generate_redirection_response_from_server(server);
+		this->_response.get_headers()["Connection"] = "close";
 		this->_response.assemble();
 		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 }
@@ -545,7 +546,7 @@ int	Connection::write_to_client(Webserver &webserv) {
 			throw Exceptions("Not the whole response was sent.");
 		}
 		// if request has Connection: close"
-		if (this->get_value_from_map("Connection") == "close") {
+		if (this->get_value_from_response_map("Connection") == "close") {
 			close(fd);
 			webserv.remove_from_poll(fd);
 			this->get_socket().set_fd(-1);
@@ -753,8 +754,17 @@ bool	Connection::sourceTriggered(int poll_fd) {
 	}
 }
 
-std::string	Connection::get_value_from_map(std::string key) {
+std::string	Connection::get_value_from_request_map(std::string key) {
 	for (std::map<std::string, std::string>::iterator it = this->_request.get_headers().begin(); it != this->_request.get_headers().end(); it++) {
+		if (it->first == key) {
+			return it->second;
+		}
+	}
+	return "";
+}
+
+std::string	Connection::get_value_from_response_map(std::string key) {
+	for (std::map<std::string, std::string>::iterator it = this->_response.get_headers().begin(); it != this->_response.get_headers().end(); it++) {
 		if (it->first == key) {
 			return it->second;
 		}

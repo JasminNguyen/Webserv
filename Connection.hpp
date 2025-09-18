@@ -48,7 +48,8 @@ class Connection {
 		int										has_index_file(const std::string& dir_path, const std::string& index_file_name);
 		std::string								generate_directory_listing(std::string &file_path);
 		void									generate_redirection_response_from_server(configParser::ServerConfig& server);
-		std::string								get_value_from_map(std::string key);
+		std::string								get_value_from_request_map(std::string key);
+		std::string								get_value_from_response_map(std::string key);
 		void									reset_revents(Webserver &webserv, int fd);
 		void									set_time_stamp();
 		bool									is_timed_out();
