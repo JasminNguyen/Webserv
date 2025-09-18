@@ -111,9 +111,6 @@ bool	Connection::_is_cgi_still_running() {
 		//std::cout << "CGI still running" << std::endl;
 		return true;
 	} else {
-		std::cout << "we go in here" << std::endl;
-		std::cout << "n: " << n << std::endl;
-		throw Exceptions("Waitpit call has failed here");
 		return false;
 	}
 }
@@ -147,17 +144,17 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 	// }
 
 	char buf[4096];
-	ssize_t n = -2;
+	ssize_t bytes_read = -2;
 	int src_fd = this->_source.get_fd();
 	if(poll.revents & POLLIN + POLLHUP)
 	{
 		
-		n = read(src_fd, buf, sizeof(buf));
+		bytes_read = read(src_fd, buf, sizeof(buf));
 
-		if (n >= 0)
+		if (bytes_read >= 0)
 		{
 			// we got some data, append exactly n bytes
-			this->_response.get_body().append(buf, n);
+			this->_response.get_body().append(buf, bytes_read);
 		}
 		else // n < 0: error case
 		{
@@ -166,14 +163,24 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		}
 		
 	}
-	if(n == 0)
+	if(bytes_read == 0)
 	{
 		int status;
+		int n = 0;
+		
+		if(this->get_source().get_pid())
+		{
+			n = waitpid(this->_source.get_pid(), &status, 0);	
+			if(n > 0)
+			{
+				this->_source.set_cgi_finished(true);
+			}
+		}		
+	
 		// close source fd
 		close(src_fd);
 		// remove fd from pollfd vector
 		webserver.remove_from_poll(src_fd);
-		waitpid(this->_source.get_pid(), &status, 0);
 		this->_source.set_fd(-1);
 
 		// generate response parts

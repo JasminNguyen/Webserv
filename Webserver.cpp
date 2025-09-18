@@ -257,6 +257,9 @@ void	Webserver::_check_for_timeouts() {
 				if (n > 0) {
 					this->_connections[i].get_source().set_cgi_finished(true);
 				}
+				this->_connections[i].get_source().set_pid(0);
+				this->_connections[i].set_time_stamp();
+				this->_connections[i].get_response().set_body(""); 
 				configParser::ServerConfig server = this->_connections[i].match_location_block(*this);
 				this->remove_from_poll(this->_connections[i].get_source().get_fd());
 				close(this->_connections[i].get_source().get_fd());
@@ -265,6 +268,7 @@ void	Webserver::_check_for_timeouts() {
 				this->_connections[i].generate_error_page(*this, "504", server);
 				if (this->_connections[i].get_source().get_fd() != -1)
 				{
+
 					return;
 				}
 				//generate headers

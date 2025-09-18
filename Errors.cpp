@@ -14,7 +14,9 @@ std::string find_error_message(std::string error_code)
         return "Payload Too Large";
     } else if (error_code == "500") {
         return "Internal Server Error";
-    } else {
+    } else if (error_code == "504") {
+		return ("Gateway Timeout");
+	} else {
         return "Unknown Error";
     }
 }
