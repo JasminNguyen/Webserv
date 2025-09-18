@@ -726,7 +726,14 @@ bool	Connection::listeningSocketTriggered(int poll_fd) {
 
 bool	Connection::clientRequestIncoming(pollfd poll) {
 	int socket_fd = this->get_socket().get_fd();
-
+	if(socket_fd == poll.fd && poll.revents & POLLIN)
+	{
+		std::cout << "POLLIN with fd: " << poll.fd << std::endl;
+	}
+	else
+	{
+		std::cout << "POLLHUP with fd: " << poll.fd << std::endl;
+	}
 	if (socket_fd == poll.fd && poll.revents & POLLIN + POLLHUP) {
 		return true;
 	} else {

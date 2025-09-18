@@ -137,7 +137,6 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 		con->accept_request(*this);
 		return 1;
 	} else if (con->clientRequestIncoming(poll)) {
-		std::cout << "POLLIN with fd: " << poll.fd << std::endl;
 		if (con->handle_request(*this) == -1) {
 			this->remove_connection(con);
 			return 0;
