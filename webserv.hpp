@@ -22,6 +22,7 @@
 # include <time.h>
 # include <sys/wait.h> 
 # include <sys/param.h>
+# include <signal.h>
 
 
 # define TIME_OUT 30
