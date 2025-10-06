@@ -251,7 +251,11 @@ std::string	Connection::generate_directory_listing(std::string &file_path)
 		html << "<h1>Index of " << file_path << "</h1>";
 		html << "<ul>";
 		struct dirent *entry;
-
+		std::string request_target = this->get_request().get_target();
+		if(request_target[request_target.size() - 1] != '/')
+		{
+			request_target =  this->get_request().get_target() + "/";
+		}
       	while ((entry = readdir(d)) != NULL)
 		{
 			if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
@@ -259,7 +263,7 @@ std::string	Connection::generate_directory_listing(std::string &file_path)
 				continue;
 			}
         	html << " \n" << entry->d_name; //print all directory name
-			html << "<li><a href=\"" << entry->d_name << "\">" << entry->d_name << "</a></li>";
+			html << "<li><a href=\"" << request_target << entry->d_name << "\">" << entry->d_name << "</a></li>";
       	}
 		html << "</ul></body></html>";
       	closedir(d); //close directory
@@ -516,7 +520,6 @@ int	Connection::handle_request(Webserver &webserv) {
 	std::cout << "our location block index is: " << this->get_location_block_index() << std::endl;
 	std::cout << "location in handle request is here: " << &server.locations[this->get_location_block_index()].path << std::endl;
 	//std::cout << "path_redirection in handle_request : " << server.locations[this->get_location_block_index()].path_redirection << std::endl;
-
 	if(this->is_redirection_present(server)) {
 		this->serve_redirection(webserv, server);
 		return 1;
