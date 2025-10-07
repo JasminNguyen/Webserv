@@ -58,7 +58,8 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
                     while(tokens[i] != ";")
                     {
                         currentLocation.allowed_methods.push_back(tokens[i]);
-						if(tokens[i] != "DELETE" && tokens[i] != "POST" && tokens[i] != "GET")
+						//std::cout << "METHOD: " << tokens[i] << std::endl;
+						if(tokens[i] != "DELETE" && tokens[i] != "POST" && tokens[i] != "GET") // check if we have anything other than the 3 methods
 						{
 							throw Exceptions("Error: Unauthorised Method!");
 						}
@@ -98,6 +99,12 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
                 }
 
             }
+			if(currentLocation.allowed_methods_present != 1) //if none are set we just allow all 3
+			{
+				currentLocation.allowed_methods.push_back("GET");
+				currentLocation.allowed_methods.push_back("POST");
+				currentLocation.allowed_methods.push_back("DELETE");
+			}
             currentServer.locations.push_back(currentLocation);
         }
         i++;

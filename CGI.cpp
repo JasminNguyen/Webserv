@@ -238,32 +238,32 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         // }
 
         const char *script_path = conn.get_source().get_path().c_str();
-        //const char *script_path = request.get_target().c_str();
-       // std::cout << "script path in run_cgi(): " << script_path << std::endl;
+      	//std::cout << "script path in run_cgi(): " << script_path << std::endl;
 
         char **argv = construct_argv(script_path, request);
         char **envp = construct_envp(request, server_block);
+
         //change directory before execve
         std::string change_dir_to;
         std::string script_path_string = strdup(script_path);
         int pos_last_slash = script_path_string.rfind("/");
         change_dir_to = script_path_string.substr(0, script_path_string.size() - (script_path_string.size() - pos_last_slash));
         //std::cout << "change dir to is: " << change_dir_to << std::endl;
+		//char buf[100];
+		
+		//std::cout << "pwd: " << getcwd(buf, 100) << std::endl;
 
         if (chdir(change_dir_to.c_str()) == -1) 
         { 
             throw Exceptions("chdir didn't work"); 
         }
-        //script_path I have to construct myself out of the info in the request header and the locations
-        //argv:
-        // usually something like:
-        // char* argv[] = {
-        //     const_cast<char*>(script_path.c_str()),  // argv[0] = script name
-        //     NULL
-        // };
-        //envp:
-        //will be first be a vector of strings (to make it resizable) and then we convert it to an array as well
-        execve(script_path, argv, envp);
+		//std::cout << "pwd: " << getcwd(buf, 100) << std::endl;
+
+		//strip script path to get only the name of the script (since we changed the directory of the script it's all we need)
+		std::string script_name = script_path_string.substr(pos_last_slash + 1);
+		//std::cout << "script name is: " << script_name << std::endl;
+
+        execve(script_name.c_str(), argv, envp);
 
         perror("execve failed"); // only runs if exec fails
         exit(1);
