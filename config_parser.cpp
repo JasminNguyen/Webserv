@@ -54,9 +54,15 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
                 else if(tokens[i] == "allowed_methods")
                 {
                     currentLocation.allowed_methods_present = 1;
+					i++;
                     while(tokens[i] != ";")
                     {
-                        currentLocation.allowed_methods.push_back(tokens[++i]);
+                        currentLocation.allowed_methods.push_back(tokens[i]);
+						if(tokens[i] != "DELETE" && tokens[i] != "POST" && tokens[i] != "GET")
+						{
+							throw Exceptions("Error: Unauthorised Method!");
+						}
+						i++;
                     }
                     i++;
 
