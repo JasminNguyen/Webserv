@@ -266,6 +266,8 @@ std::string	Connection::generate_directory_listing(std::string &file_path)
 			html << "<li><a href=\"" << request_target << entry->d_name << "\">" << entry->d_name << "</a></li>";
       	}
 		html << "</ul></body></html>";
+		this->get_source().set_path(this->get_source().get_path() + "/.html");
+		std::cout << "source of directory listing is: " << this->get_source().get_path() << std::endl;
       	closedir(d); //close directory
 		return html.str(); //return what I just put together
 }
@@ -404,6 +406,8 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 					{
 						//serve index file
 						file_path.append("/index.html");
+						this->get_source().set_path(this->get_source().get_path() + "/index.html");
+						std::cout << "source in directory is: " << this->get_source().get_path() << std::endl;
 					}
 					else //no index file -> check if autoindex is on
 					{

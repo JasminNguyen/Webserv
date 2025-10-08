@@ -83,5 +83,7 @@ void Connection::generate_error_page(Webserver &webserv, std::string error_code,
         std::stringstream ss;
         ss << this->_response.get_body().size();
         this->_response.get_headers()["Content-Length"] = ss.str();
+		this->get_source().set_path(this->get_source().get_path() + "/.html");
+		std::cout << "source of dynamic error page is: " << this->get_source().get_path() << std::endl;
     }
 }
