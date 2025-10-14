@@ -271,6 +271,7 @@ void	Webserver::_check_for_timeouts() {
 					return;
 				}
 				//generate headers
+				this->_connections[i].generate_headers();
 				this->_connections[i].get_response().assemble();
 				this->add_pollout_to_socket_events(this->_connections[i].get_socket().get_fd());
 				return;

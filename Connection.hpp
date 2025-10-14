@@ -65,6 +65,12 @@ class Connection {
 		void									close_fds();
 		bool									_process_uses_cgi();
 		bool									_is_cgi_still_running();
+		bool									is_method_allowed(configParser::ServerConfig &server);
+		void									generate_headers();
+		std::string								get_content_type();
+		static const std::map<std::string, std::string>	init_mime_types();
+
+		static const std::map<std::string, std::string>	mime_types;
 
 	private:
 

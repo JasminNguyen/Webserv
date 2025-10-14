@@ -5,6 +5,24 @@
 #include "CGI.hpp"
 #include "Exceptions.hpp"
 
+const std::map<std::string, std::string> Connection::mime_types = Connection::init_mime_types();
+
+const std::map<std::string, std::string>	Connection::init_mime_types() {
+	std::map<std::string, std::string> m;
+    m[".html"] = "text/html";
+    m[".htm"]  = "text/html";
+    m[".css"]  = "text/css";
+    m[".js"]   = "application/javascript";
+    m[".json"] = "application/json";
+    m[".png"]  = "image/png";
+    m[".jpg"]  = "image/jpeg";
+    m[".jpeg"] = "image/jpeg";
+    m[".gif"]  = "image/gif";
+    m[".txt"]  = "text/plain";
+    m[".pdf"]  = "application/pdf";
+    m[".ico"]  = "image/x-icon";
+    return m;
+}
 
 Connection::Connection() {
 	//std::cout << "Connection default constructor called" << std::endl;
@@ -194,26 +212,17 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			this->_response.get_status_code() = "200";
 			this->_response.get_status_string() = "OK";
 		}
-		if (this->get_value_from_request_map("Connection") == "close") {
-			this->_response.get_headers()["Connection"] = "close";
-		} else {
-			this->_response.get_headers()["Connection"] = "keep-alive";
+		//generate headers
+		this->generate_headers();
+		if (this->get_value_from_request_map("Connection") == "keep-alive") {
 			this->_source.set_path("");
 			this->_source.set_pid(0);
 		}
-		//generate headers
-		std::stringstream ss;
-		ss << this->_response.get_body().size();
-		this->_response.get_headers()["Content-Length"] = ss.str();
-		std::cout << "How often???????????????????????" << std::endl;
 		this->_response.assemble();
 		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
 		return 1;
 	}
-
 	return 0;
-
-
 }
 
 void	Connection::add_server(std::vector<configParser::ServerConfig>::iterator it) {
@@ -366,6 +375,7 @@ int		Connection::check_content_length_too_big(Webserver &webserv, configParser::
 				return -1;
 			}
 			//generate headers
+			this->generate_headers();
 			this->_response.assemble();
 			webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 			return 1;
@@ -386,6 +396,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 		if (this->request_requires_cgi(server)) {
 			std::cout << "Hi from the if block to initiate CGI" << std::endl;
 			CGI::run_cgi(this->_request, server, webserv, *this);
+			this->get_source().set_path(this->get_source().get_path() + "/.html");
 		} else {
 			// open static file
 			// open static file and add fd to poll vector
@@ -419,9 +430,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 							this->_response.set_status_code("200");
 							this->_response.set_status_string("OK");
 							// generate headers
-							std::stringstream ss;
-							ss << this->_response.get_body().size();
-							this->_response.get_headers()["Content-Length"] = ss.str();
+							this->generate_headers();
 							this->_response.assemble();
 							webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 							return;
@@ -434,6 +443,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 								return; // body will be read later
 							}
 							//generate headers
+							this->generate_headers();
 							this->_response.assemble();
 							webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 							return;
@@ -459,6 +469,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 						return; // body will be read later
 					}
 					//generate headers
+					this->generate_headers();
 					this->_response.assemble();
 					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 					return;
@@ -485,6 +496,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 						return; // body will be read later
 					}
 					//generate headers
+					this->generate_headers();
 					this->_response.assemble();
 					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 					return;
@@ -497,8 +509,40 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 
 	} */ else if (request_method == "DELETE") {
 		// delete source if available and
+	}
+}
+
+bool	Connection::is_method_allowed(configParser::ServerConfig &server) {
+	std::vector<std::string>::iterator it;
+	for (it = server.locations[this->get_location_block_index()].allowed_methods.begin(); it != server.locations[this->get_location_block_index()].allowed_methods.end(); it++) {
+		if (this->_request.get_method() == *it) {
+			return true;
+		}
+	}
+	return false;
+}
+
+std::string	Connection::get_content_type() {
+	std::string file_path = this->_source.get_path();
+	std::string file_extension = file_path.substr(file_path.find_last_of("."));
+	std::cout << "file extension: " << file_extension << std::endl;
+	std::map<std::string, std::string>::const_iterator it = Connection::mime_types.find(file_extension);
+	std::string content_type = it->second;
+	std::cout << "content type: " << content_type << std::endl;
+	return content_type;
+}
+
+void	Connection::generate_headers() {
+	std::stringstream content_length;
+	content_length << this->_response.get_body().size();
+	this->_response.set_header("Date", generate_date());
+	this->_response.set_header("Server", "RoyalsOfDelay/1.0");
+	this->_response.set_header("Content-Length", content_length.str());
+	this->_response.set_header("Content-Type", this->get_content_type());
+	if (this->get_value_from_request_map("Connection") == "close") {
+		this->_response.set_header("Connection", "close");
 	} else {
-		// method is not allowed
+		this->_response.set_header("Connection", "keep-alive");
 	}
 }
 
@@ -524,11 +568,24 @@ int	Connection::handle_request(Webserver &webserv) {
 	std::cout << "our location block index is: " << this->get_location_block_index() << std::endl;
 	std::cout << "location in handle request is here: " << &server.locations[this->get_location_block_index()].path << std::endl;
 	//std::cout << "path_redirection in handle_request : " << server.locations[this->get_location_block_index()].path_redirection << std::endl;
+	//this->_request.get_method() = "hjb";
+	if (this->is_method_allowed(server) == false) {
+		generate_error_page(webserv, "405", server);
+		if (this->_source.get_fd() != -1)
+		{
+			return 1; // body will be read later
+		}
+		//generate headers
+		this->generate_headers();
+		this->_response.assemble();
+		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+		return 1;
+	}
+
 	if(this->is_redirection_present(server)) {
 		this->serve_redirection(webserv, server);
 		return 1;
 	}
-
 	// CHECK FOR POST, GET, DELETE METHOD
 	this->create_response(webserv, server);
 	return 1;
@@ -542,6 +599,9 @@ int	Connection::write_to_client(Webserver &webserv) {
 	//std::cout << "Response: " << response << std::endl;
 	// send response - chunked writing based on buffer size
 	//std::cout << "fd: " << fd << std::endl;
+	std::cout << std::endl;
+	std::cout << "FINAL:" << std::endl;
+	std::cout << response << std::endl << std::endl;
 	size_t n = write(fd, response.c_str(), response.size());
 	if (n < 0) {
 		close(fd);
@@ -705,6 +765,7 @@ configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 			std::cout << "No location block match found - WE ARE GENERATING THE 404 ERROR PAGE" << std::endl;
 			this->generate_error_page(webserv, "404", *matched_server);
 			//generate headers
+			this->generate_headers();
 			this->_response.assemble();
 			webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 		}

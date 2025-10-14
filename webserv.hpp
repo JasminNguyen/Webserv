@@ -20,15 +20,15 @@
 # include <sys/stat.h>
 # include <dirent.h>
 # include <time.h>
-# include <sys/wait.h> 
+# include <sys/wait.h>
 # include <sys/param.h>
 # include <signal.h>
-
+# include <ctime>
 
 # define TIME_OUT 30
 
 //helper functions
 std::string trim(const std::string& str);
-
+std::string generate_date();
 
 #endif

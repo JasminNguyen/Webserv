@@ -26,6 +26,7 @@ class Response {
 		void								set_status_code(std::string s);
 		void								set_status_string(std::string s);
 		void								set_body(std::string s);
+		void								set_header(std::string key, std::string value);
 
 		void								assemble();
 

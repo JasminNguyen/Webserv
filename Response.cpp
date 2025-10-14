@@ -118,3 +118,7 @@ void	Response::_add_headers() {
 		}
 	this->_raw.append("\n");
 }
+
+void	Response::set_header(std::string key, std::string value) {
+	this->_headers[key] = value;
+}
