@@ -83,7 +83,7 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
     env.push_back("GATEWAY_INTERFACE=CGI/1.1");
 
     int array_length = env.size();
-    char **envp = new char*[array_length];
+	char **envp = (char**)malloc((array_length + 1) * sizeof(char*));
     for(int i = 0; i < array_length; i++)
     {
         envp[i] = strdup(env[i].c_str());
@@ -98,19 +98,22 @@ char ** CGI::construct_envp(Request& request, configParser::ServerConfig & serve
 char** CGI::construct_argv(const char* &script_path,Request &request)
 {
     char *converted_script_path = strdup(script_path); //don't forget to free strdup allocates mem
-    char **argv = new char*[3];
+    char **argv = (char**)malloc(3 * sizeof(char*));
     //argv[0] = (char*)"/usr/bin/python3"; // argv[0] = interpreter (I assume that we just use a python script to run cgi)
     if(request.get_target().substr(request.get_target().size() - 3).compare(".py") == 0)
     {
-        argv[0] = (char*)"/usr/bin/python3";
+		std::string path = "/usr/bin/python3";
+		argv[0] = strdup(path.c_str());
     }
     else if(request.get_target().substr(request.get_target().size() - 4).compare(".php") == 0)
     {
-        argv[0] = (char*)"/usr/bin/php";
+		std::string path = "/usr/bin/php";
+		argv[0] = strdup(path.c_str());
     }
     else if(request.get_target().substr(request.get_target().size() - 3).compare(".sh") == 0)
     {
-        argv[0] = (char*)"/usr/bin/sh";
+		std::string path = "/usr/bin/sh";
+		argv[0] = strdup(path.c_str());
     }
     argv[1] = converted_script_path;  // argv[1] = script_path that I constructed earlier
     argv[2] = NULL;   // end of array
@@ -250,12 +253,12 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         change_dir_to = script_path_string.substr(0, script_path_string.size() - (script_path_string.size() - pos_last_slash));
         //std::cout << "change dir to is: " << change_dir_to << std::endl;
 		//char buf[100];
-		
+
 		//std::cout << "pwd: " << getcwd(buf, 100) << std::endl;
 
-        if (chdir(change_dir_to.c_str()) == -1) 
-        { 
-            throw Exceptions("chdir didn't work"); 
+        if (chdir(change_dir_to.c_str()) == -1)
+        {
+            throw Exceptions("chdir didn't work");
         }
 		//std::cout << "pwd: " << getcwd(buf, 100) << std::endl;
 
