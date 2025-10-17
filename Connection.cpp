@@ -192,6 +192,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 			if(n > 0)
 			{
 				this->_source.set_cgi_finished(true);
+				webserver.listen_to_nothing(this->get_socket().get_fd());
 			}
 		}
 
@@ -307,6 +308,17 @@ int		Connection::has_index_file(const std::string& dir_path, const std::string& 
 
 void Connection::dismiss_old_request(Webserver &webserv)
 {
+	if(this->_process_uses_cgi())
+	{
+		int status;
+		kill(this->get_source().get_pid(), SIGTERM);
+		int n = waitpid(this->get_source().get_pid(), &status, 0);
+		if (n > 0) {
+			this->get_source().set_cgi_finished(true);
+		}
+		this->get_source().set_pid(0);
+		this->get_response().set_body("");
+	}
 	std::cout << "we are dismissing the old request" << std::endl;
 	size_t fd = this->_source.get_fd();
 	close(fd);
@@ -357,7 +369,13 @@ void	Connection::serve_redirection(Webserver &webserv, configParser::ServerConfi
 
 int		Connection::check_content_length_too_big(Webserver &webserv, configParser::ServerConfig & server)
 {
-		int content_length = 0;
+	int content_length = 0;
+	if(this->_request.is_chunked())
+	{
+		content_length = this->get_request().get_body().size();
+	}
+	else
+	{
 		for(std::map<std::string, std::string>::iterator it = this->_request.get_headers().begin(); it != this->_request.get_headers().end(); it++)
 		{
 			if(it->first == "Content-Length")
@@ -366,21 +384,27 @@ int		Connection::check_content_length_too_big(Webserver &webserv, configParser::
 				break;
 			}
 		}
-		if(server.client_max_body_size < content_length)
+	}
+	if(server.client_max_body_size < content_length)
+	{
+		this->generate_error_page(webserv, "413", server);
+		if (this->_source.get_fd() != -1)
 		{
-			this->generate_error_page(webserv, "413", server);
-			if (this->_source.get_fd() != -1)
-			{
-				std::cout << "error in fd" << std::endl;
-				return -1;
-			}
-			//generate headers
-			this->generate_headers();
-			this->_response.assemble();
-			webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-			return 1;
+			std::cout << "error in fd" << std::endl;
+			return -1;
 		}
-		return 0;
+		//generate headers
+		this->generate_headers();
+		this->_response.assemble();
+		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+		return 1;
+	}
+	return 0;
+}
+
+void	Connection::handle_uploads()
+{
+
 }
 void	Connection::create_response(Webserver &webserv, configParser::ServerConfig &server) {
 	//CHECK FOR POST, GET, DELETE METHOD
@@ -388,13 +412,18 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 	std::string request_method = this->_request.get_method();
 
 	if (request_method == "GET" || request_method == "POST") {
-
 		if(check_content_length_too_big(webserv, server))
 		{
 			return;
 		}
+		//FOR UPLOADS
+		if(_request.get_target() == "/uploads" && request_method == "POST")
+		{
+				this->handle_uploads();
+		}
 		if (this->request_requires_cgi(server)) {
 			std::cout << "Hi from the if block to initiate CGI" << std::endl;
+			webserv.listen_to_nothing(this->get_socket().get_fd());
 			CGI::run_cgi(this->_request, server, webserv, *this);
 			this->get_source().set_path(this->get_source().get_path() + "/.html");
 		} else {
@@ -863,6 +892,7 @@ void	Connection::set_time_stamp() {
 }
 
 bool	Connection::is_timed_out() {
+	//std::cout << "time for fd " << this->get_socket().get_fd() << "is: " << time(0) - this->_last_active << std::endl;
 	if (time(0) - this->_last_active > TIME_OUT) {
 		return true;
 	} else {
@@ -870,7 +900,7 @@ bool	Connection::is_timed_out() {
 	}
 }
 
-bool	Connection::is_cgi_broken() {
+bool	Connection::is_cgi_broken(Webserver &webserver) {
 	int status;
 
 	int n = waitpid(this->_source.get_pid(), &status, WNOHANG);
@@ -881,6 +911,7 @@ bool	Connection::is_cgi_broken() {
 		return false;
 	} else if (n > 0) {
 		this->_source.set_cgi_finished(true);
+		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
 		std::cout << "cgi process is ended" << std::endl;
 		if (WIFEXITED(status)) {
 			std::cout << "CGI terminated normally" << std::endl;

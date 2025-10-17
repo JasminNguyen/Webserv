@@ -23,8 +23,12 @@ class Request {
 		std::map<std::string, std::string>	&get_headers();
 		std::string							&get_body();
 
+		void								set_body(std::string tmp);
+
 		int									process(int sock_fd);
 		void								parse();
+		int 								is_chunked();
+		bool								header_val_contains_chunked(std::string &header_val);
 
 	private:
 

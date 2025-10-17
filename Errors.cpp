@@ -53,6 +53,7 @@ void Connection::generate_error_page(Webserver &webserv, std::string error_code,
                 {
                     int fd = open(error_path.c_str(), O_RDONLY);
                     if (fd != -1) {
+						this->get_response().set_status_code(error_code);
                         this->get_source().set_path(error_path);
                         this->get_source().set_fd(fd);
                         webserv.add_connection_to_poll(fd);

@@ -33,6 +33,7 @@ class Webserver {
 
 		void 									add_pollout_to_socket_events(int fd);
 		void									remove_pollout_from_socket_events(int fd);
+		void									listen_to_nothing(int fd);
 
 	private:
 

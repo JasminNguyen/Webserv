@@ -60,7 +60,7 @@ class Connection {
 		bool									is_redirection_present(configParser::ServerConfig &server);
 		void									serve_redirection(Webserver &webserv, configParser::ServerConfig &server);
 		void									create_response(Webserver &webserv, configParser::ServerConfig &server);
-		bool									is_cgi_broken();
+		bool									is_cgi_broken(Webserver &webserver);
 		int										check_content_length_too_big(Webserver &webserv, configParser::ServerConfig & server);
 		void									close_fds();
 		bool									_process_uses_cgi();
@@ -69,6 +69,7 @@ class Connection {
 		void									generate_headers();
 		std::string								get_content_type();
 		static const std::map<std::string, std::string>	init_mime_types();
+		void									handle_uploads();
 
 		static const std::map<std::string, std::string>	mime_types;
 

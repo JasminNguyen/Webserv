@@ -63,6 +63,53 @@ std::string	&Request::get_body() {
 	return this->_body;
 }
 
+
+
+bool Request::header_val_contains_chunked(std::string &header_val)
+{
+	std::string val = header_val;
+	for(size_t i = 0; i < val.size(); i++) //everything lowercase
+	{
+		if(val[i] >= 'A' && val[i] <= 'Z')
+		{
+			val[i] = ((char)val[i] + 32);
+		}
+
+	}
+
+	// Split by commas
+    std::vector<std::string> tokens;
+    std::stringstream ss(val);
+    std::string token;
+    while (std::getline(ss, token, ',')) 
+	{
+        tokens.push_back(trim(token));
+    }
+
+	for(size_t i = 0; i < tokens.size(); i++)
+	{
+		if(tokens[i] == "chunked")
+		{
+			return true;
+		}
+	}
+	return false;
+}
+int Request::is_chunked()
+{
+	for(std::map<std::string,std::string>::iterator it = this->get_headers().begin(); it != this->get_headers().end(); it++)
+	{
+		if(it->first == "Transfer-Encoding" || it->first == "transfer-encoding" || it->first == "TRANSFER-ENCODING")
+		{
+			std::string header_val = it->second;
+			if(header_val_contains_chunked(header_val) == true)
+			{
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
 int	Request::process(int sock_fd) {
 	char buf[1024];
 	// read into this->_req->_raw
@@ -74,12 +121,17 @@ int	Request::process(int sock_fd) {
 	if (n < 0) {
 		return -1;
 	} else { // difference between n == 0 and n > 0 ???
-		this->_raw.append(buf);
+		this->_raw.append(buf, n);
 	}
 	std::cout << "We are parsing the request" << std::endl;
 	std::cout << std::endl << this->_raw << std::endl;
 	this->parse();
 	return 1;
+}
+
+void	Request::set_body(std::string tmp)
+{
+	this->_body = tmp;
 }
 
 void	Request::parse() {
@@ -110,7 +162,16 @@ void	Request::parse() {
 		}
 	}
 	if (this->_method == "POST") {
-		std::getline(ss, this->get_body(), '\0');
+		std::string tmp;
+		std::getline(ss, tmp, '\0');
+		if(this->is_chunked())
+		{
+			this->get_body().append(tmp);
+		}
+		else
+		{
+			this->set_body(tmp);
+		}
 	} else {
 		this->_body = "";
 	}
