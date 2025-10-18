@@ -209,7 +209,7 @@ void	Request::_parse_header_line(std::string line) {
 	}
 	key.erase(key.length() - 1, 1);
 
-	ss >> value;
-
+	std::getline(ss, value);  
+	value = trim(value);
 	this->_headers[key] = value;
 }
