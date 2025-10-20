@@ -111,6 +111,16 @@ int Request::is_chunked()
 	return 0;
 }
 
+std::string	Request::get_header_value(std::string key) {
+	std::map<std::string, std::string>::iterator it = this->get_headers().begin();
+	for (it; it != this->get_headers().end(); it++) {
+		if (it->first == key) {
+			return it->second;
+		}
+	}
+	return "";
+}
+
 int	Request::process(int sock_fd) {
 	char buf[BUF_SIZE];
 	// read into this->_req->_raw
@@ -125,14 +135,26 @@ int	Request::process(int sock_fd) {
 	} */
 	if (n < 0) {
 		return -1;
-	} else if (n < BUF_SIZE) {
+	} else {
+		this->_raw.append(buf, n);
 		std::cout << "We are parsing the request" << std::endl;
 		std::cout << std::endl << this->_raw << std::endl;
 		this->parse();
-		return 1;
-	} else { // difference between n == 0 and n > 0 ???
-		this->_raw.append(buf, n);
-		return 0;
+		if (this->is_chunked()) {
+			if (n == 0) {
+				return 1;
+			} else {
+				return 0;
+			}
+		} else {
+			std::stringstream ss;
+			ss << this->get_body().size();
+			if (ss.str() == this->get_header_value("Content-Length")) {
+				return 1;
+			} else {
+				return 0;
+			}
+		}
 	}
 }
 
@@ -149,14 +171,6 @@ void	Request::parse() {
 	std::getline(ss, line);
 	_parse_start_line(line);
 
-	// while (std::getline(ss, line)) {
-	// 	if (!line.empty()) {
-	// 		_parse_header_line(line);
-	// 	} else {
-	// 		break;
-	// 	}
-	// }
-	//MODIFIED BY JASMIN -> let Marc review this
 	while (std::getline(ss, line)) {
 		if (!line.empty() && line != "\r") {
 			if (line[line.size() - 1] == '\r')
@@ -171,14 +185,15 @@ void	Request::parse() {
 	if (this->_method == "POST") {
 		std::string tmp;
 		std::getline(ss, tmp, '\0');
-		if(this->is_chunked())
+		this->set_body(tmp);
+		/* if(this->is_chunked())
 		{
 			this->get_body().append(tmp);
 		}
 		else
 		{
 			this->set_body(tmp);
-		}
+		} */
 	} else {
 		this->_body = "";
 	}

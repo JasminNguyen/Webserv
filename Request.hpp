@@ -23,6 +23,8 @@ class Request {
 		std::map<std::string, std::string>	&get_headers();
 		std::string							&get_body();
 
+		std::string							get_header_value(std::string key);
+
 		void								set_body(std::string tmp);
 
 		int									process(int sock_fd);
