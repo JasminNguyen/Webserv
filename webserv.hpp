@@ -26,6 +26,7 @@
 # include <ctime>
 
 # define TIME_OUT 30
+# define BUF_SIZE 10
 
 //helper functions
 std::string trim(const std::string& str);

@@ -577,12 +577,16 @@ void	Connection::generate_headers() {
 
 /* read and process request to produce response */
 int	Connection::handle_request(Webserver &webserv) {
+	int status = 0;
 	if (this->last_request_process_unfinished()) {
 		this->dismiss_old_request(webserv);
 	}
-	if (this->_request.process(this->_sock.get_fd()) == -1) {
+	status = this->_request.process(this->_sock.get_fd());
+	if (status == -1) {
 		webserv.remove_from_poll(this->_sock.get_fd());
 		return -1;
+	} else if (status == 0) {
+		return 0;
 	}
 	if(this->_request.get_raw() == "")
 	{
@@ -892,7 +896,6 @@ void	Connection::set_time_stamp() {
 }
 
 bool	Connection::is_timed_out() {
-	//std::cout << "time for fd " << this->get_socket().get_fd() << "is: " << time(0) - this->_last_active << std::endl;
 	if (time(0) - this->_last_active > TIME_OUT) {
 		return true;
 	} else {

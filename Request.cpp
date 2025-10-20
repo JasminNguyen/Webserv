@@ -81,7 +81,7 @@ bool Request::header_val_contains_chunked(std::string &header_val)
     std::vector<std::string> tokens;
     std::stringstream ss(val);
     std::string token;
-    while (std::getline(ss, token, ',')) 
+    while (std::getline(ss, token, ','))
 	{
         tokens.push_back(trim(token));
     }
@@ -110,23 +110,30 @@ int Request::is_chunked()
 	}
 	return 0;
 }
+
 int	Request::process(int sock_fd) {
-	char buf[1024];
+	char buf[BUF_SIZE];
 	// read into this->_req->_raw
 	std::cout << "handle request on client socket" << std::endl;
 	size_t n = 0;
-	while ((n = read(sock_fd, buf, sizeof(buf))) && n == 1024) {
+	n = read(sock_fd, buf, sizeof(buf));
+	std::cout << std::endl;
+	std::cout << "buf: " << buf << std::endl;
+	std::cout << std::endl;
+	/* while ((n = read(sock_fd, buf, sizeof(buf))) && n == 1024) {
 		this->_raw.append(buf);
-	}
+	} */
 	if (n < 0) {
 		return -1;
+	} else if (n < BUF_SIZE) {
+		std::cout << "We are parsing the request" << std::endl;
+		std::cout << std::endl << this->_raw << std::endl;
+		this->parse();
+		return 1;
 	} else { // difference between n == 0 and n > 0 ???
 		this->_raw.append(buf, n);
+		return 0;
 	}
-	std::cout << "We are parsing the request" << std::endl;
-	std::cout << std::endl << this->_raw << std::endl;
-	this->parse();
-	return 1;
 }
 
 void	Request::set_body(std::string tmp)
@@ -209,7 +216,7 @@ void	Request::_parse_header_line(std::string line) {
 	}
 	key.erase(key.length() - 1, 1);
 
-	std::getline(ss, value);  
+	std::getline(ss, value);
 	value = trim(value);
 	this->_headers[key] = value;
 }
