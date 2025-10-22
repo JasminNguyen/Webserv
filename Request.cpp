@@ -81,7 +81,7 @@ bool Request::header_val_contains_chunked(std::string &header_val)
     std::vector<std::string> tokens;
     std::stringstream ss(val);
     std::string token;
-    while (std::getline(ss, token, ','))
+    while (std::getline(ss, token, ',')) 
 	{
         tokens.push_back(trim(token));
     }
@@ -110,16 +110,16 @@ int Request::is_chunked()
 	}
 	return 0;
 }
-
 std::string	Request::get_header_value(std::string key) {
-	std::map<std::string, std::string>::iterator it = this->get_headers().begin();
-	for (it; it != this->get_headers().end(); it++) {
+	
+	for (std::map<std::string, std::string>::iterator it = this->get_headers().begin(); it != this->get_headers().end(); it++) {
 		if (it->first == key) {
 			return it->second;
 		}
 	}
 	return "";
 }
+
 
 int	Request::process(int sock_fd) {
 	char buf[BUF_SIZE];
@@ -140,21 +140,26 @@ int	Request::process(int sock_fd) {
 		std::cout << "We are parsing the request" << std::endl;
 		std::cout << std::endl << this->_raw << std::endl;
 		this->parse();
-		if (this->is_chunked()) {
-			if (n == 0) {
-				return 1;
+		if(this->get_method() == "POST")
+		{
+			if (this->is_chunked()) {
+				if (n == 0) {
+					return 1;
+				} else {
+					return 0;
+				}
 			} else {
-				return 0;
-			}
-		} else {
-			std::stringstream ss;
-			ss << this->get_body().size();
-			if (ss.str() == this->get_header_value("Content-Length")) {
-				return 1;
-			} else {
-				return 0;
+				std::stringstream ss;
+				ss << this->get_body().size();
+				if (ss.str() == this->get_header_value("Content-Length")) {
+					return 1;
+				} else {
+					return 0;
+				}
 			}
 		}
+		return 1;
+		
 	}
 }
 
@@ -167,8 +172,7 @@ void	Request::parse() {
 
 	std::string	line;
 	std::istringstream ss(this->_raw);
-
-	std::getline(ss, line);
+ 	std::getline(ss, line);
 	_parse_start_line(line);
 
 	while (std::getline(ss, line)) {
@@ -186,14 +190,6 @@ void	Request::parse() {
 		std::string tmp;
 		std::getline(ss, tmp, '\0');
 		this->set_body(tmp);
-		/* if(this->is_chunked())
-		{
-			this->get_body().append(tmp);
-		}
-		else
-		{
-			this->set_body(tmp);
-		} */
 	} else {
 		this->_body = "";
 	}
@@ -231,7 +227,7 @@ void	Request::_parse_header_line(std::string line) {
 	}
 	key.erase(key.length() - 1, 1);
 
-	std::getline(ss, value);
+	std::getline(ss, value);  
 	value = trim(value);
 	this->_headers[key] = value;
 }

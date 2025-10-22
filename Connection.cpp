@@ -401,10 +401,264 @@ int		Connection::check_content_length_too_big(Webserver &webserv, configParser::
 	}
 	return 0;
 }
+std::string Connection::sanitize_filename(std::string filename) 
+{
+    for (size_t i = 0; i < filename.size(); ++i)
+        if (filename[i] == '/' || filename[i] == '\\') filename[i] = '_';
+    if (filename.empty()) filename = "upload";
+    return filename;
+}
 
-void	Connection::handle_uploads()
+void Connection::check_for_upload_folder()
 {
 
+}
+int	Connection::write_content_to_uploads_directory()
+{
+	// 1. build target path
+	//strip filename from '/'
+	std::string safe_filename = sanitize_filename(this->filename);
+	//make sure uploads folder exists
+	this->check_for_upload_folder();
+	//concatenate ./uploads and stripped filename
+	std::string target_path = "./uploads/" + safe_filename;
+
+	//2. write content to .uploads
+	//open file
+    int fd = open(target_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd == -1)
+    {
+        perror("open");
+        return -1;
+    }
+
+    ssize_t written = 0;
+    while (written < (ssize_t)this->multipart_content.size())
+    {
+        ssize_t n = write(fd, this->multipart_content.data() + written,
+                          this->multipart_content.size() - written);
+        if (n <= 0)
+        {
+            perror("write");
+            close(fd);
+            return -1;
+        }
+        written += n;
+    }
+
+    close(fd);
+	return 1;
+}
+//JUST FOR ONE CONTENT NOW (FILE)
+int Connection::extract_multipart_content_in_request_body(std::string boundary, const std::string &request_body)
+{
+	std::string first_boundary = "--" + boundary + "\r\n";
+	std::string separation_boundary = "--" + boundary + "\r\n"; //same thing
+	std::string last_boundary = "--" + boundary + "--" + "\r\n";
+
+	size_t pos_first_boundary = request_body.find(first_boundary);
+	size_t pos_last_boundary = request_body.find(last_boundary);
+	if(pos_first_boundary == std::string::npos || pos_last_boundary == std::string::npos)
+	{
+		return -1;
+	}
+	std::string header;
+	std::string content;
+	
+	size_t pos = pos_first_boundary;
+	pos += first_boundary.size(); // now at start of the part headers
+
+
+	size_t pos_header_end = request_body.find("\r\n\r\n", pos_first_boundary);	//find header end
+	if(pos_header_end == std::string::npos)
+	{
+		return -1;
+	}
+	header = request_body.substr(pos, pos_header_end - pos); //build header substring
+	std::cout << "HEADER IS:" << std::endl;
+	std::cout << "hhhhhhhhhhhhhhhhh" << std::endl;
+	std::cout << header << std::endl;
+	std::cout << "hhhhhhhhhhhhhhhhh" << std::endl;
+
+	//parse Content-Disposition
+	std::string filename;
+	size_t h_pos = 0;
+	while (h_pos < header.size()) //iterate through header
+	{
+		size_t pos_content_disposition = header.find("Content-Disposition");
+		size_t pos_line_end = header.find("\r\n", pos_content_disposition);
+		if(pos_content_disposition == std::string::npos || pos_line_end == std::string::npos)
+		{
+			return -1;
+		}
+		std::string line = header.substr(pos_content_disposition, pos_line_end - pos_content_disposition);
+		// std::cout << "LINE:" << std::endl;
+		// std::cout << "lllllllllllllllllll" << std::endl;
+		// std::cout << line << std::endl;
+		// std::cout << "lllllllllllllllllll" << std::endl;
+
+		
+		//extract name and filename from Content-Disposition line
+		if(!line.empty())
+		{	
+			std::string name;
+			std::string filename;
+
+			//size_t l_pos = 0;
+			size_t pos_name = line.find("name");
+			size_t pos_filename = line.find("filename");
+			size_t pos_start_quote = line.find('"', pos_name);
+			size_t pos_end_quote = line.find('"', pos_start_quote + 1);
+			if(pos_name == std::string::npos || pos_filename == std::string::npos || pos_start_quote == std::string::npos || pos_end_quote == std::string::npos)
+			{
+				return -1;
+			}
+			name = line.substr(pos_start_quote + 1, pos_end_quote - pos_start_quote - 1);
+			// std::cout << "NAME:" << std::endl;
+			// std::cout << "nnnnnnnnnnnnn" << std::endl;
+			// std::cout << name << std::endl;
+			// std::cout << "nnnnnnnnnnnnn" << std::endl;
+
+			pos_start_quote = line.find('"', pos_filename);
+			pos_end_quote = line.find('"', pos_start_quote +1);
+			filename = line.substr(pos_start_quote + 1, pos_end_quote - pos_start_quote -1);
+			if(filename.empty())
+			{
+				std::cout << "no filename present - just a field" << std::endl;
+				//further parsing needed
+			}
+			this->filename = filename;
+			// std::cout << "FILENAME:" << std::endl;
+			// std::cout << "fffffffffffff" << std::endl;
+			// std::cout << filename << std::endl;
+			// std::cout << "fffffffffffff" << std::endl;
+		}
+		h_pos++;
+	}
+
+	//extract the content after the header
+	size_t pos_content_start = request_body.find("\r\n\r\n", pos_header_end);
+	size_t pos_content_end = request_body.find(separation_boundary, pos_content_start);
+	if(pos_content_start == std::string::npos)
+	{
+		return -1;
+	}
+	if(pos_content_end == std::string::npos)
+	{
+		pos_content_end = request_body.find(last_boundary);
+		std::cout << "I go in here cause I don't find a separation boundary" << std::endl;
+	}
+	if(pos_content_end == std::string::npos)
+	{
+		return -1;
+	}
+	// 3) EXCLUDE exactly one protocol CRLF right before the boundary, if present
+	if (pos_content_end >= 2 &&
+		request_body[pos_content_end - 2] == '\r' &&
+		request_body[pos_content_end - 1] == '\n') {
+		pos_content_end -= 2; // drop the boundary-leading CRLF, keep content’s own newline(s)
+	}
+	content = request_body.substr(pos_content_start + 4, pos_content_end - (pos_content_start + 4));
+	// std::cout << "CONTENT:" << std::endl;
+	// std::cout << "ccccccccccccc" << std::endl;
+	// std::cout << content;
+	// std::cout << "ccccccccccccc" << std::endl;
+	this->multipart_content = content;
+	
+
+	return 1;
+}
+int	Connection::extract_boundary_from_content_type_header(std::string &content_type_header, std::string &boundary)
+{
+	std::cout << "THE CONTENT-TYPE HEADER IS: " << content_type_header << std::endl;
+	size_t pos_equal_sign = content_type_header.find("=");
+	if(pos_equal_sign == std::string::npos)
+	{
+		return -1;
+	}
+	boundary = content_type_header.substr(pos_equal_sign + 1);
+	if(boundary.empty())
+	{
+		return -1;
+	}
+	return 1;
+}
+bool Connection::header_val_contains_multipart(std::string header_val)
+{
+	std::string val = header_val;
+	for(size_t i = 0; i < val.size(); i++) //everything lowercase
+	{
+		if(val[i] >= 'A' && val[i] <= 'Z')
+		{
+			val[i] = ((char)val[i] + 32);
+		}
+
+	}
+	// split by semicolon
+    std::vector<std::string> tokens;
+    std::stringstream ss(val);
+    std::string token;
+    while (std::getline(ss, token, ';')) 
+	{
+        tokens.push_back(trim(token));
+    }
+
+	for(size_t i = 0; i < tokens.size(); i++)
+	{
+		if(tokens[i] == "multipart/form-data")
+		{
+			return true;
+		}
+	}
+	return false;
+}
+void	Connection::handle_uploads(Webserver &webserv, configParser::ServerConfig &server)
+{
+	//1. check for multipart
+	std::string header_val;
+	for(std::map<std::string, std::string>::iterator it = this->_request.get_headers().begin(); it != this->_request.get_headers().end(); it++)
+	{
+		if(it->first == "Content-Type" || it->first == "content-type")
+		{
+			header_val = it->second;
+			if(header_val_contains_multipart(header_val) == false)
+			{
+				generate_error_page(webserv, "415", server); // unsupported media type -> type is wrong or no multipart
+				//add all the other stuff needed to generate error page properly
+				return;
+			}
+		}
+	}
+	//is it properly unchunked?
+	//2. extract the boundary (acting as a delimiter) from the header
+
+	std::string boundary;
+    if(!extract_boundary_from_content_type_header(header_val, boundary)) 
+	{
+        generate_error_page(webserv, "400", server); // says multipart but missing boundary -> malformed
+		//add all the other stuff needed to generate error page properly
+		return;
+    }
+	std::cout << "BOUNDARY IS: " << boundary << std::endl;
+
+	//3. extract content inbetween boundary
+	//print request first
+	std::cout << "POST REQUEST IS:" << std::endl;
+	std::cout << "++++++++++++++++++" << std::endl;
+	if(this->_request.get_body().empty())
+	{
+		throw Exceptions("post request body seems to be empty");
+	}
+	std::cout << this->_request.get_body() << std::endl;
+	std::cout << "++++++++++++++++++" << std::endl;
+	if(!extract_multipart_content_in_request_body(boundary, this->_request.get_body()))
+	{
+		//which error page do I need here?????
+	}
+	if(!write_content_to_uploads_directory())
+	{
+		//which error page do I need here?????
+	}
 }
 void	Connection::create_response(Webserver &webserv, configParser::ServerConfig &server) {
 	//CHECK FOR POST, GET, DELETE METHOD
@@ -412,6 +666,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 	std::string request_method = this->_request.get_method();
 
 	if (request_method == "GET" || request_method == "POST") {
+
 		if(check_content_length_too_big(webserv, server))
 		{
 			return;
@@ -419,7 +674,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 		//FOR UPLOADS
 		if(_request.get_target() == "/uploads" && request_method == "POST")
 		{
-				this->handle_uploads();
+			this->handle_uploads(webserv, server);
 		}
 		if (this->request_requires_cgi(server)) {
 			std::cout << "Hi from the if block to initiate CGI" << std::endl;

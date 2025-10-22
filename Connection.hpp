@@ -69,10 +69,16 @@ class Connection {
 		void									generate_headers();
 		std::string								get_content_type();
 		static const std::map<std::string, std::string>	init_mime_types();
-		void									handle_uploads();
-
+		void										handle_uploads(Webserver &webserv, configParser::ServerConfig &server);
+		bool									header_val_contains_multipart(std::string header_val);
+		int										extract_boundary_from_content_type_header(std::string &content, std::string &boundary);
+		int										extract_multipart_content_in_request_body(std::string boundary, const std::string &request_body);
 		static const std::map<std::string, std::string>	mime_types;
-
+		
+		int										write_content_to_uploads_directory();
+		std::string								sanitize_filename(std::string filename);
+		void									check_for_upload_folder();
+							
 	private:
 
 		Socket									_sock;
@@ -84,7 +90,8 @@ class Connection {
 		std::string								_host;
 		int 									_location_block_index; //ADDED BY JASMIN
 		time_t									_last_active;
-
+		std::string								multipart_content;
+		std::string								filename;
 };
 
 #endif
