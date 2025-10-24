@@ -28,15 +28,15 @@ void Connection::generate_error_page(Webserver &webserv, std::string error_code,
     //check if there is a provided error page in config file
     if(!server.path_error_page.empty())
     {
-        std::cout << "error_code: " << error_code << std::endl;
+       // std::cout << "error_code: " << error_code << std::endl;
         //find correct error page in folder structure
         for(std::map<std::string, std::string>::iterator it = server.error_pages_map.begin(); it != server.error_pages_map.end(); it++)
         {
-            std::cout << "it->first: " << it->first << std::endl;
-            std::cout << "it->second: " << it->second << std::endl;
+            // std::cout << "it->first: " << it->first << std::endl;
+            // std::cout << "it->second: " << it->second << std::endl;
             if(error_code == it->first) //found matching right error code in the config file
             {
-                std::cout << "We are using a local error page!" << std::endl;
+                //std::cout << "We are using a local error page!" << std::endl;
                 local_error_page_found = true;
                 // //find the path to the error page -> DO I PUT THE PATH TO THE ERROR PAGE IN SOURCE?
                 // this->get_source().set_path(it->second);
@@ -45,7 +45,7 @@ void Connection::generate_error_page(Webserver &webserv, std::string error_code,
                 // this->get_response().set_status_string(error_message);
                 // return;
                 std::string error_path = it->second; // e.g. "/errors/404.html"
-                std::cout << "error_path: " << error_path << std::endl;
+                //std::cout << "error_path: " << error_path << std::endl;
                 error_path = "." + error_path; // quick mapping to ./errors/404.html
                 struct stat st;
                 if (stat(error_path.c_str(), &st) == 0 && S_ISREG(st.st_mode) &&
@@ -67,7 +67,7 @@ void Connection::generate_error_page(Webserver &webserv, std::string error_code,
     }
     if(!local_error_page_found)
     {
-         std::cout << "We are generating an error page dynamically!" << std::endl;
+         //std::cout << "We are generating an error page dynamically!" << std::endl;
         //generate an error page dynamicallyy
        std::ostringstream oss;
         oss << "<html><head><title>" << error_code << " " << error_message << "</title></head>\n"
@@ -85,6 +85,6 @@ void Connection::generate_error_page(Webserver &webserv, std::string error_code,
         ss << this->_response.get_body().size();
         this->_response.get_headers()["Content-Length"] = ss.str();
 		this->get_source().set_path(this->get_source().get_path() + "/.html");
-		std::cout << "source of dynamic error page is: " << this->get_source().get_path() << std::endl;
+		//std::cout << "source of dynamic error page is: " << this->get_source().get_path() << std::endl;
     }
 }

@@ -124,12 +124,12 @@ std::string	Request::get_header_value(std::string key) {
 int	Request::process(int sock_fd) {
 	char buf[BUF_SIZE];
 	// read into this->_req->_raw
-	std::cout << "handle request on client socket" << std::endl;
+	//std::cout << "handle request on client socket" << std::endl;
 	size_t n = 0;
 	n = read(sock_fd, buf, sizeof(buf));
-	std::cout << std::endl;
-	std::cout << "buf: " << buf << std::endl;
-	std::cout << std::endl;
+	// std::cout << std::endl;
+	// std::cout << "buf: " << buf << std::endl;
+	// std::cout << std::endl;
 	/* while ((n = read(sock_fd, buf, sizeof(buf))) && n == 1024) {
 		this->_raw.append(buf);
 	} */
@@ -137,8 +137,12 @@ int	Request::process(int sock_fd) {
 		return -1;
 	} else {
 		this->_raw.append(buf, n);
-		std::cout << "We are parsing the request" << std::endl;
-		std::cout << std::endl << this->_raw << std::endl;
+		//std::cout << "We are parsing the request" << std::endl;
+		//std::cout << std::endl << this->_raw << std::endl;
+		if(this->get_raw().find("\r\n\r\n") == std::string::npos)
+		{
+			return 0;
+		}
 		this->parse();
 		if(this->get_method() == "POST")
 		{
@@ -149,11 +153,22 @@ int	Request::process(int sock_fd) {
 					return 0;
 				}
 			} else {
+				//std::cout << "I am here" << std::endl;
 				std::stringstream ss;
 				ss << this->get_body().size();
+				// std::cout << "body size is: " << this->get_body().size() << std::endl;
+				// std::cout << "content lenght is: " << this->get_header_value("Content-Length") << std::endl;
+				// std::cout << "BODY:" << std::endl;
+				// std::cout << "bbbbbbbbbbbbbbbbbbbbbbbbb" << std::endl;
+				// std::cout << this->get_body() << std::endl;
+				// std::cout << "bbbbbbbbbbbbbbbbbbbbbbbbb" << std::endl;
+
+				//std::cout << "I am here2" << std::endl;
 				if (ss.str() == this->get_header_value("Content-Length")) {
+					//std::cout << "I am here3" << std::endl;
 					return 1;
 				} else {
+					//std::cout << "I am here4" << std::endl;
 					return 0;
 				}
 			}
@@ -187,9 +202,14 @@ void	Request::parse() {
 		}
 	}
 	if (this->_method == "POST") {
-		std::string tmp;
-		std::getline(ss, tmp, '\0');
-		this->set_body(tmp);
+		std::stringstream ss_body;
+		ss_body << ss.rdbuf();
+		this->set_body(ss_body.str());
+		
+		// std::cout << "Body in parser is: " << std::endl;
+		// std::cout << "pppppppppppppppp" << std::endl;
+		// std::cout << this->get_body() << std::endl;
+		// std::cout << "pppppppppppppppp" << std::endl;
 	} else {
 		this->_body = "";
 	}

@@ -45,7 +45,7 @@ void	Webserver::populate_socket_connections() {
 	it != this->_config.end(); it++) {
 		std::vector<Connection>::iterator con = this->_connection_exists(it);
 		if (con == this->_connections.end()) {
-			std::cout << "Create new connection" << std::endl;
+			//std::cout << "Create new connection" << std::endl;
 			//create new socket, etc.
 			//std::cout << "port:  " << it->port << " host: " <<it->host << std::endl;
 			ListeningSocket l_sock = ListeningSocket(it->port, it->host);
@@ -133,7 +133,7 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 	int send_status = 0;
 
 	if (con->listeningSocketTriggered(poll.fd)) {
-		std::cout << "POLLIN on LS: " << poll.fd << std::endl;
+		//std::cout << "POLLIN on LS: " << poll.fd << std::endl;
 		con->accept_request(*this);
 		return 1;
 	} else if (con->clientRequestIncoming(poll)) {
@@ -145,8 +145,8 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 			return 1;
 		}
 	} else if (con->clientExpectingResponse(poll)) {
-		std::cout << "POLLOUT with fd: " << poll.fd << std::endl;
-		std::cout << "poll revents: " << poll.revents << std::endl;
+		// std::cout << "POLLOUT with fd: " << poll.fd << std::endl;
+		// std::cout << "poll revents: " << poll.revents << std::endl;
 		send_status = con->send_response(*this);
 		if (send_status == 1) {
 			// if request has Connection: close
@@ -165,7 +165,7 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 			return 0;
 		}
 	} else if (con->sourceTriggered(poll.fd)) {
-		std::cout << "POLLIN on SOURCE: " << poll.fd << std::endl;
+		//std::cout << "POLLIN on SOURCE: " << poll.fd << std::endl;
 		read_status = con->read_from_source(*this, poll);
 		if (read_status == 1) {
 			return 1;
@@ -192,7 +192,7 @@ void	Webserver::launch() {
 			throw(std::exception());
 		}
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
-			if (this->_polls[i].revents & POLLERR + POLLNVAL) {
+			if (this->_polls[i].revents & POLLERR + POLLNVAL + POLLRDHUP) {
 
 				std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
 				pollfd poll = this->_polls[i];

@@ -87,7 +87,7 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
                         if(tokens[i] == "root")
                         {
                             currentLocation.path = tokens[++i];
-                            std::cout << "location in parser is here: " << &currentLocation.path << std::endl;
+                            // std::cout << "location in parser is here: " << &currentLocation.path << std::endl;
                             break;
                         }
                         i++;
@@ -113,7 +113,7 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
             break;
         }
     }
-    std::cout << "number of location blocks in parsing_location_blocks: " << currentServer.locations.size() << std::endl;
+    // std::cout << "number of location blocks in parsing_location_blocks: " << currentServer.locations.size() << std::endl;
     return 0;
 }
 int configParser::parse_server_block(std::vector<std::string> &tokens)
@@ -154,6 +154,10 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
                     currentServer.path_error_page = tokens[++i];
                     currentServer.error_pages_map[currentServer.error_code] = currentServer.path_error_page; //put it in map
                 }
+				else if(tokens[i] == "/uploads")
+				{
+					currentServer.uploads_location_present = true;
+				}
                 else if(tokens[i] == "location")
                 {
                     parse_location_block(tokens, i, currentServer);
@@ -166,9 +170,7 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
             serverConfigVector.push_back(currentServer);
         }
         i++;
-
     }
-
     return 0;
 }
 

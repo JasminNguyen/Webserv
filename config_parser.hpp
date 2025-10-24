@@ -34,8 +34,9 @@ class configParser
         std::string error_code;
         std::string path_error_page;
         std::map<std::string, std::string> error_pages_map;
+		bool uploads_location_present;
 
-        ServerConfig(): client_max_body_size(0){}
+        ServerConfig(): client_max_body_size(0), uploads_location_present(false) {}
 
         std::vector<LocationConfig> locations;
     };

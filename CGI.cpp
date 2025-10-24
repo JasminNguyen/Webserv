@@ -161,9 +161,11 @@ char** CGI::construct_argv(const char* &script_path,Request &request)
 
 void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, Webserver & webserver, Connection &conn)
 {
+	//std::cout << "file is:" << conn.get_source().get_path().c_str() << std::endl;
+	//conn.get_source().set_path("/cgi/post_foto.py");
     if (access(conn.get_source().get_path().c_str() , R_OK) == -1)
     {
-        std::cerr << "File doesn't exist or isn't readable." << std::endl;
+        std::cerr << "File doesn't exist or isn't readable. - CGI" << std::endl;
         if (errno == EACCES)
         {
             conn.generate_error_page(webserver, "403", server_block);
@@ -207,7 +209,7 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         throw Exceptions("couldn't pipe");
     }
     pid_t pid = fork();
-	std::cout << "pid is: " << pid << std::endl;
+	// std::cout << "pid is: " << pid << std::endl;
     if(pid == -1)
     {
         throw Exceptions("couldn't fork");
@@ -281,8 +283,8 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
 
     // write to in_pipe[1] → CGI stdin (cgi instructions)
     // read from out_pipe[0] ← CGI output (result of what cgi made)
-    std::cout << "body of POST request is: " << request.get_body() << std::endl;
-    std::cout << "size of POST request is: " << request.get_body().size() << std::endl;
+    // std::cout << "body of POST request is: " << request.get_body() << std::endl;
+    // std::cout << "size of POST request is: " << request.get_body().size() << std::endl;
     write(in_pipe[1], request.get_body().c_str(), request.get_body().size()); //writing request to CGI via pipe
     close(in_pipe[1]); //close that pipe
 

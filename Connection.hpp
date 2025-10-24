@@ -69,7 +69,7 @@ class Connection {
 		void									generate_headers();
 		std::string								get_content_type();
 		static const std::map<std::string, std::string>	init_mime_types();
-		void										handle_uploads(Webserver &webserv, configParser::ServerConfig &server);
+		void									handle_uploads(Webserver &webserv, configParser::ServerConfig &server);
 		bool									header_val_contains_multipart(std::string header_val);
 		int										extract_boundary_from_content_type_header(std::string &content, std::string &boundary);
 		int										extract_multipart_content_in_request_body(std::string boundary, const std::string &request_body);

@@ -50,8 +50,8 @@ Connection::Connection(const Connection &ref) {
 	this->_source = ref._source;
 	this->_host = ref._host;
 	this->_port = ref._port;
-	this->_last_active = time(0);
-	this->_location_block_index = -1;
+	this->_last_active = ref._last_active;
+	this->_location_block_index = ref._location_block_index;
 }
 
 Connection::~Connection() {
@@ -68,8 +68,8 @@ Connection &Connection::operator=(const Connection &ref) {
 		this->_source = ref._source;
 		this->_host = ref._host;
 		this->_port = ref._port;
-		this->_last_active = time(0);
-		this->_location_block_index = -1;
+		this->_last_active = ref._last_active;
+		this->_location_block_index = ref._location_block_index;
 	}
 	return *this;
 }
@@ -234,12 +234,13 @@ void	Connection::add_server(std::vector<configParser::ServerConfig>::iterator it
 create client socket to establish conncetion */
 void	Connection::accept_request(Webserver &webserv) {
 	int new_fd = accept(this->get_socket().get_fd(), 0, 0); // Are 0s okay or should we provide info?
-	std::cout << "Accept request" << std::endl;
+	// std::cout << "Accept request" << std::endl;
 	if (new_fd < 0) {
 		std::cout << "We have a problem." << std::endl;
 	}
 	Connection new_con = Connection(*this);
 	new_con._sock = Socket(new_fd);
+	new_con.set_time_stamp();
 	webserv.get_connections().push_back(new_con);
 	webserv.add_connection_to_poll(new_fd);
 }
@@ -277,7 +278,7 @@ std::string	Connection::generate_directory_listing(std::string &file_path)
       	}
 		html << "</ul></body></html>";
 		this->get_source().set_path(this->get_source().get_path() + "/.html");
-		std::cout << "source of directory listing is: " << this->get_source().get_path() << std::endl;
+		// std::cout << "source of directory listing is: " << this->get_source().get_path() << std::endl;
       	closedir(d); //close directory
 		return html.str(); //return what I just put together
 }
@@ -319,17 +320,17 @@ void Connection::dismiss_old_request(Webserver &webserv)
 		this->get_source().set_pid(0);
 		this->get_response().set_body("");
 	}
-	std::cout << "we are dismissing the old request" << std::endl;
+	// std::cout << "we are dismissing the old request" << std::endl;
 	size_t fd = this->_source.get_fd();
 	close(fd);
 	webserv.remove_from_poll(fd);
 	this->_source.set_fd(-1);
-	std::cout << "source_fd is now: " << this->_source.get_fd() << std::endl;
+	// std::cout << "source_fd is now: " << this->_source.get_fd() << std::endl;
 
 }
 
 bool	Connection::last_request_process_unfinished() {
-	std::cout << "source_fd is: " << this->_source.get_fd() << std::endl;
+	// std::cout << "source_fd is: " << this->_source.get_fd() << std::endl;
 
 	if (this->_source.get_fd() != -1) {
 		return true;
@@ -359,7 +360,7 @@ bool	Connection::is_redirection_present(configParser::ServerConfig &server) {
 }
 
 void	Connection::serve_redirection(Webserver &webserv, configParser::ServerConfig &server) {
-	std::cout << "We are redirecting" << std::endl;
+	// std::cout << "We are redirecting" << std::endl;
 		this->generate_redirection_response_from_server(server);
 		this->_response.get_headers()["Connection"] = "close";
 		this->_response.assemble();
@@ -390,7 +391,6 @@ int		Connection::check_content_length_too_big(Webserver &webserv, configParser::
 		this->generate_error_page(webserv, "413", server);
 		if (this->_source.get_fd() != -1)
 		{
-			std::cout << "error in fd" << std::endl;
 			return -1;
 		}
 		//generate headers
@@ -452,14 +452,21 @@ int	Connection::write_content_to_uploads_directory()
 //JUST FOR ONE CONTENT NOW (FILE)
 int Connection::extract_multipart_content_in_request_body(std::string boundary, const std::string &request_body)
 {
+	//std::cout << "WE are in extract multipart content" << std::endl;
 	std::string first_boundary = "--" + boundary + "\r\n";
 	std::string separation_boundary = "--" + boundary + "\r\n"; //same thing
 	std::string last_boundary = "--" + boundary + "--" + "\r\n";
 
 	size_t pos_first_boundary = request_body.find(first_boundary);
 	size_t pos_last_boundary = request_body.find(last_boundary);
-	if(pos_first_boundary == std::string::npos || pos_last_boundary == std::string::npos)
+	if(pos_first_boundary == std::string::npos)
 	{
+		std::cout << "1" << std::endl;
+		return -1;
+	}
+	if(pos_last_boundary == std::string::npos)
+	{
+		std::cout << "1.1" << std::endl;
 		return -1;
 	}
 	std::string header;
@@ -472,13 +479,14 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 	size_t pos_header_end = request_body.find("\r\n\r\n", pos_first_boundary);	//find header end
 	if(pos_header_end == std::string::npos)
 	{
+		std::cout << "2" << std::endl;
 		return -1;
 	}
 	header = request_body.substr(pos, pos_header_end - pos); //build header substring
-	std::cout << "HEADER IS:" << std::endl;
-	std::cout << "hhhhhhhhhhhhhhhhh" << std::endl;
-	std::cout << header << std::endl;
-	std::cout << "hhhhhhhhhhhhhhhhh" << std::endl;
+	// std::cout << "HEADER IS:" << std::endl;
+	// std::cout << "hhhhhhhhhhhhhhhhh" << std::endl;
+	// std::cout << header << std::endl;
+	// std::cout << "hhhhhhhhhhhhhhhhh" << std::endl;
 
 	//parse Content-Disposition
 	std::string filename;
@@ -489,6 +497,7 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 		size_t pos_line_end = header.find("\r\n", pos_content_disposition);
 		if(pos_content_disposition == std::string::npos || pos_line_end == std::string::npos)
 		{
+			std::cout << "3" << std::endl;
 			return -1;
 		}
 		std::string line = header.substr(pos_content_disposition, pos_line_end - pos_content_disposition);
@@ -564,7 +573,6 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 	// std::cout << content;
 	// std::cout << "ccccccccccccc" << std::endl;
 	this->multipart_content = content;
-	
 
 	return 1;
 }
@@ -643,30 +651,30 @@ void	Connection::handle_uploads(Webserver &webserv, configParser::ServerConfig &
 
 	//3. extract content inbetween boundary
 	//print request first
-	std::cout << "POST REQUEST IS:" << std::endl;
-	std::cout << "++++++++++++++++++" << std::endl;
-	if(this->_request.get_body().empty())
+	// std::cout << "POST REQUEST IS:" << std::endl;
+	// std::cout << "++++++++++++++++++" << std::endl;
+	// if(this->_request.get_body().empty())
+	// {
+	// 	throw Exceptions("post request body seems to be empty");
+	// }
+	// std::cout << this->_request.get_body() << std::endl;
+	// std::cout << "++++++++++++++++++" << std::endl;
+	if(extract_multipart_content_in_request_body(boundary, this->_request.get_body()) == -1)
 	{
-		throw Exceptions("post request body seems to be empty");
-	}
-	std::cout << this->_request.get_body() << std::endl;
-	std::cout << "++++++++++++++++++" << std::endl;
-	if(!extract_multipart_content_in_request_body(boundary, this->_request.get_body()))
-	{
+		std::cout << "DO I GET HERE?" << std::endl;
 		//which error page do I need here?????
 	}
-	if(!write_content_to_uploads_directory())
+	if(write_content_to_uploads_directory() == -1)
 	{
 		//which error page do I need here?????
 	}
 }
 void	Connection::create_response(Webserver &webserv, configParser::ServerConfig &server) {
 	//CHECK FOR POST, GET, DELETE METHOD
-
+	
 	std::string request_method = this->_request.get_method();
 
 	if (request_method == "GET" || request_method == "POST") {
-
 		if(check_content_length_too_big(webserv, server))
 		{
 			return;
@@ -677,7 +685,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 			this->handle_uploads(webserv, server);
 		}
 		if (this->request_requires_cgi(server)) {
-			std::cout << "Hi from the if block to initiate CGI" << std::endl;
+			// std::cout << "Hi from the if block to initiate CGI" << std::endl;
 			webserv.listen_to_nothing(this->get_socket().get_fd());
 			CGI::run_cgi(this->_request, server, webserv, *this);
 			this->get_source().set_path(this->get_source().get_path() + "/.html");
@@ -687,22 +695,22 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 				// check if file exists
 				// check if file is readable
 				// different error pages if file not readable or doesn't exist?
-			std::cout << "target: " << this->_request.get_target() << std::endl;
+			// std::cout << "target: " << this->_request.get_target() << std::endl;
 			//this->_source.set_path("./content/test.html");
 			std::string file_path = this->_source.get_path();
-			std::cout << "file path: " << file_path << std::endl;
+			// std::cout << "file path: " << file_path << std::endl;
 
 			struct stat st;
 			if (stat(file_path.c_str(), &st) == 0) {
 				if (S_ISDIR(st.st_mode)) {
-					std::cout << "should be a directory." << std::endl;
+					// std::cout << "should be a directory." << std::endl;
 					//check if there is an index file in the directory
 					if(has_index_file(file_path, "index.html") == 1)
 					{
 						//serve index file
 						file_path.append("/index.html");
 						this->get_source().set_path(this->get_source().get_path() + "/index.html");
-						std::cout << "source in directory is: " << this->get_source().get_path() << std::endl;
+						// std::cout << "source in directory is: " << this->get_source().get_path() << std::endl;
 					}
 					else //no index file -> check if autoindex is on
 					{
@@ -760,7 +768,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 
 				} else {
 					// open file
-					std::cout << "Am I a file?" << std::endl;
+					// std::cout << "Am I a file?" << std::endl;
 					int fd = open(file_path.c_str(), O_RDONLY);
 					if (fd == -1) {
 						std::cerr << "Opening the file " << file_path.c_str() << " failed." << std::endl;
@@ -768,7 +776,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 					this->_source.set_fd(fd);
 					// add poll instance to poll vector
 					webserv.add_connection_to_poll(fd);
-					std::cout << "Opening static file has worked." << std::endl;
+					// std::cout << "Opening static file has worked." << std::endl;
 				}
 			} else {
 				// errno == ENOENT
@@ -809,10 +817,10 @@ bool	Connection::is_method_allowed(configParser::ServerConfig &server) {
 std::string	Connection::get_content_type() {
 	std::string file_path = this->_source.get_path();
 	std::string file_extension = file_path.substr(file_path.find_last_of("."));
-	std::cout << "file extension: " << file_extension << std::endl;
+	//std::cout << "file extension: " << file_extension << std::endl;
 	std::map<std::string, std::string>::const_iterator it = Connection::mime_types.find(file_extension);
 	std::string content_type = it->second;
-	std::cout << "content type: " << content_type << std::endl;
+	//std::cout << "content type: " << content_type << std::endl;
 	return content_type;
 }
 
@@ -852,9 +860,9 @@ int	Connection::handle_request(Webserver &webserv) {
 	std::string target = this->_request.get_target();
 	//MAYBE WE SHOULD DECIDE HERE WHETHER WE ARE DEALING WITH A REDIRECTION (CGI AND FILES CAN BE AFFECTED) -> MATCH_LOCATION BLOCK HERE.
 	configParser::ServerConfig &server = this->match_location_block(webserv);
-	std::cout << "number of location blocks in request handling is: " << server.locations.size() << std::endl;
-	std::cout << "our location block index is: " << this->get_location_block_index() << std::endl;
-	std::cout << "location in handle request is here: " << &server.locations[this->get_location_block_index()].path << std::endl;
+	// std::cout << "number of location blocks in request handling is: " << server.locations.size() << std::endl;
+	// std::cout << "our location block index is: " << this->get_location_block_index() << std::endl;
+	// std::cout << "location in handle request is here: " << &server.locations[this->get_location_block_index()].path << std::endl;
 	//std::cout << "path_redirection in handle_request : " << server.locations[this->get_location_block_index()].path_redirection << std::endl;
 	//this->_request.get_method() = "hjb";
 	if (this->is_method_allowed(server) == false) {
@@ -883,13 +891,13 @@ int	Connection::write_to_client(Webserver &webserv) {
 	int fd = this->get_socket().get_fd();
 	std::string &response = this->_response.get_raw();
 
-	std::cout << "trying to send.." << std::endl;
+	//std::cout << "trying to send.." << std::endl;
 	//std::cout << "Response: " << response << std::endl;
 	// send response - chunked writing based on buffer size
 	//std::cout << "fd: " << fd << std::endl;
-	std::cout << std::endl;
-	std::cout << "FINAL:" << std::endl;
-	std::cout << response << std::endl << std::endl;
+	//std::cout << std::endl;
+	//std::cout << "FINAL:" << std::endl;
+	//std::cout << response << std::endl << std::endl;
 	size_t n = write(fd, response.c_str(), response.size());
 	if (n < 0) {
 		close(fd);
@@ -926,8 +934,8 @@ int	Connection::write_to_client(Webserver &webserv) {
 			*/
 			this->get_source().set_fd(-1);
 		}
-		std::cout << "Response:" << std::endl << std::endl;
-		std::cout << response << std::endl;
+		// std::cout << "Response:" << std::endl << std::endl;
+		// std::cout << response << std::endl;
 		return 1;
 	}
 }
@@ -974,7 +982,7 @@ configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 	// 3. match the host header to server block that are the Connection
 	std::vector<configParser::ServerConfig> &servers_in_question = this->getServers();
 	configParser::ServerConfig* matched_server = NULL;
-	std::cout << "size of servers in question is: " << servers_in_question.size() << std::endl;
+//	std::cout << "size of servers in question is: " << servers_in_question.size() << std::endl;
 	for(std::vector<configParser::ServerConfig>::iterator it = servers_in_question.begin(); it != servers_in_question.end(); it++)
 	{
 		//std::cout << "looking for a server name match" << std::endl;
@@ -982,7 +990,7 @@ configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 		//std::cout << "host_header is: " << host_header << std::endl;
 		if(it->server_name == host_header) //matches!
 		{
-			std::cout << "WE FOUND A SERVER NAME MATCH" << std::endl;
+			// std::cout << "WE FOUND A SERVER NAME MATCH" << std::endl;
 			matched_server = &(*it);
 			break;
 		}
@@ -1043,14 +1051,14 @@ configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 			script_path = best_location->root + '/' + relative_path;
 			_source.set_path(script_path); //setting the constructed script path in Source
 			this->setLocationBlockIndex(best_index); //setting the location block index (needed in handle_request)
-			std::cout << "location in match_location_block is here: " << &best_location->redirection_present << std::endl;
+			//std::cout << "location in match_location_block is here: " << &best_location->redirection_present << std::endl;
 		}
 		else
 		{
 			// 	_response->set_status_code("404");
 			// _response->set_body("Not Found");
 			//throw std::runtime_error("No match found in location blocks");
-			std::cout << "No location block match found - WE ARE GENERATING THE 404 ERROR PAGE" << std::endl;
+			//std::cout << "No location block match found - WE ARE GENERATING THE 404 ERROR PAGE" << std::endl;
 			this->generate_error_page(webserv, "404", *matched_server);
 			//generate headers
 			this->generate_headers();
@@ -1065,7 +1073,7 @@ configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 		_source.set_path(script_path);
 
 	}
-	std::cout << "number of locations in match_location_block: " << matched_server->locations.size() << std::endl;
+	//std::cout << "number of locations in match_location_block: " << matched_server->locations.size() << std::endl;
 	return *(matched_server);
 }
 
@@ -1084,11 +1092,11 @@ bool	Connection::clientRequestIncoming(pollfd poll) {
 	int socket_fd = this->get_socket().get_fd();
 	if(socket_fd == poll.fd && poll.revents & POLLIN)
 	{
-		std::cout << "POLLIN with fd: " << poll.fd << std::endl;
+		//std::cout << "POLLIN with fd: " << poll.fd << std::endl;
 	}
 	else
 	{
-		std::cout << "POLLHUP with fd: " << poll.fd << std::endl;
+		//std::cout << "POLLHUP with fd: " << poll.fd << std::endl;
 	}
 	if (socket_fd == poll.fd && poll.revents & POLLIN + POLLHUP) {
 		return true;
@@ -1170,7 +1178,7 @@ bool	Connection::is_cgi_broken(Webserver &webserver) {
 	} else if (n > 0) {
 		this->_source.set_cgi_finished(true);
 		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
-		std::cout << "cgi process is ended" << std::endl;
+		//std::cout << "cgi process is ended" << std::endl;
 		if (WIFEXITED(status)) {
 			std::cout << "CGI terminated normally" << std::endl;
 			return false;
