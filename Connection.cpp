@@ -128,7 +128,10 @@ bool	Connection::_is_cgi_still_running() {
 	if (n == 0) {
 		//std::cout << "CGI still running" << std::endl;
 		return true;
+	} else if (n == -1) {
+		throw Exceptions("Waitpid fails somewhere else");
 	} else {
+		this->_source.set_cgi_finished(true);
 		return false;
 	}
 }
@@ -401,7 +404,7 @@ int		Connection::check_content_length_too_big(Webserver &webserv, configParser::
 	}
 	return 0;
 }
-std::string Connection::sanitize_filename(std::string filename) 
+std::string Connection::sanitize_filename(std::string filename)
 {
     for (size_t i = 0; i < filename.size(); ++i)
         if (filename[i] == '/' || filename[i] == '\\') filename[i] = '_';
@@ -471,7 +474,7 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 	}
 	std::string header;
 	std::string content;
-	
+
 	size_t pos = pos_first_boundary;
 	pos += first_boundary.size(); // now at start of the part headers
 
@@ -506,10 +509,10 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 		// std::cout << line << std::endl;
 		// std::cout << "lllllllllllllllllll" << std::endl;
 
-		
+
 		//extract name and filename from Content-Disposition line
 		if(!line.empty())
-		{	
+		{
 			std::string name;
 			std::string filename;
 
@@ -606,7 +609,7 @@ bool Connection::header_val_contains_multipart(std::string header_val)
     std::vector<std::string> tokens;
     std::stringstream ss(val);
     std::string token;
-    while (std::getline(ss, token, ';')) 
+    while (std::getline(ss, token, ';'))
 	{
         tokens.push_back(trim(token));
     }
@@ -641,7 +644,7 @@ void	Connection::handle_uploads(Webserver &webserv, configParser::ServerConfig &
 	//2. extract the boundary (acting as a delimiter) from the header
 
 	std::string boundary;
-    if(!extract_boundary_from_content_type_header(header_val, boundary)) 
+    if(!extract_boundary_from_content_type_header(header_val, boundary))
 	{
         generate_error_page(webserv, "400", server); // says multipart but missing boundary -> malformed
 		//add all the other stuff needed to generate error page properly
@@ -671,7 +674,7 @@ void	Connection::handle_uploads(Webserver &webserv, configParser::ServerConfig &
 }
 void	Connection::create_response(Webserver &webserv, configParser::ServerConfig &server) {
 	//CHECK FOR POST, GET, DELETE METHOD
-	
+
 	std::string request_method = this->_request.get_method();
 
 	if (request_method == "GET" || request_method == "POST") {
