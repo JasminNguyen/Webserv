@@ -30,7 +30,7 @@ class configParser
         int port;
         std::string server_name;
         std::string root;
-        int client_max_body_size;
+        long client_max_body_size;
         std::string error_code;
         std::string path_error_page;
         std::map<std::string, std::string> error_pages_map;

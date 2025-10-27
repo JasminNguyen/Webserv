@@ -150,7 +150,15 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
                 }
                 else if(tokens[i] == "client_max_body_size")
                 {
-                    currentServer.client_max_body_size = atoi(tokens[++i].c_str());
+                    currentServer.client_max_body_size = std::strtoll(tokens[++i].c_str(), NULL, 10);
+					if(currentServer.client_max_body_size > INT_MAX)
+					{
+						currentServer.client_max_body_size = INT_MAX;
+					}
+					else if (currentServer.client_max_body_size < 0)
+					{
+						throw Exceptions("Error: Client_max_body_size has to be a positive integer");
+					}
                     i++;
                 }
                 else if(tokens[i] == "error_page")
