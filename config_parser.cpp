@@ -93,6 +93,11 @@ int configParser::parse_location_block(std::vector<std::string> &tokens, size_t 
                         i++;
                     }
                 }
+				else if(tokens[i] == "/uploads")
+				{
+					currentServer.uploads_location_present = true;
+					i++;
+				}
                 else
                 {
                     i++;
@@ -154,10 +159,6 @@ int configParser::parse_server_block(std::vector<std::string> &tokens)
                     currentServer.path_error_page = tokens[++i];
                     currentServer.error_pages_map[currentServer.error_code] = currentServer.path_error_page; //put it in map
                 }
-				else if(tokens[i] == "/uploads")
-				{
-					currentServer.uploads_location_present = true;
-				}
                 else if(tokens[i] == "location")
                 {
                     parse_location_block(tokens, i, currentServer);

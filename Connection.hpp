@@ -77,7 +77,6 @@ class Connection {
 		
 		int										write_content_to_uploads_directory();
 		std::string								sanitize_filename(std::string filename);
-		void									check_for_upload_folder();
 							
 	private:
 

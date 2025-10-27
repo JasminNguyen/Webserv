@@ -235,6 +235,19 @@ void	Webserver::parse_config(const char *config_file) {
 	tokenVector = configParser.tokenize(config_file);
 	configParser.parse_server_block(tokenVector);
 	this->_config = configParser.serverConfigVector;
+	//checking for /uploads location in config file
+	for(size_t i = 0; i < this->_config.size(); i++)
+	{
+		if(configParser.serverConfigVector[i].uploads_location_present == false)
+		{
+			throw Exceptions("Error: There is a missing '/uploads' location in the configuration file");
+		}
+	}
+	const char* folder = "./uploads";
+    if (!(access(folder, F_OK) == 0))
+	{
+        throw Exceptions("./uploads folder does not exist");
+    }
 }
 
 void	Webserver::add_pollout_to_socket_events(int fd) {

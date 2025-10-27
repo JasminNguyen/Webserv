@@ -412,17 +412,11 @@ std::string Connection::sanitize_filename(std::string filename)
     return filename;
 }
 
-void Connection::check_for_upload_folder()
-{
-
-}
 int	Connection::write_content_to_uploads_directory()
 {
 	// 1. build target path
 	//strip filename from '/'
 	std::string safe_filename = sanitize_filename(this->filename);
-	//make sure uploads folder exists
-	this->check_for_upload_folder();
 	//concatenate ./uploads and stripped filename
 	std::string target_path = "./uploads/" + safe_filename;
 
