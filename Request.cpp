@@ -137,8 +137,8 @@ int	Request::process(int sock_fd) {
 		return -1;
 	} else {
 		this->_raw.append(buf, n);
-		//std::cout << "We are parsing the request" << std::endl;
-		//std::cout << std::endl << this->_raw << std::endl;
+		// std::cout << "We are parsing the request" << std::endl;
+		// std::cout << std::endl << this->_raw << std::endl;
 		if(this->get_raw().find("\r\n\r\n") == std::string::npos)
 		{
 			return 0;

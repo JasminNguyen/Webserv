@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>File Upload & Delete Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    h1 { color: #333; }
+    form { margin-bottom: 2em; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 4px 0; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; }
+    button.delete-btn {
+      border: none;
+      background: none;
+      color: #c00;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    button.delete-btn:hover {
+      color: #f33;
+    }
+    #fileList { margin-top: 1em; }
+  </style>
+</head>
+<body>
+  <h1>Upload Test</h1>
+
+  <!-- Upload form -->
+  <form id="uploadForm" action="/uploads" method="POST" enctype="multipart/form-data" target="uploadFrame">
+    <label for="file">Choose file:</label>
+    <input type="file" name="file" id="file" required><br><br>
+    <input type="submit" value="Upload">
+  </form>
+
+  <!-- Hidden iframe just for legacy upload handling -->
+  <iframe name="uploadFrame" style="display:none;"></iframe>
+
+  <h2>Uploaded Files</h2>
+  <p>The list below shows the current contents of the <code>/uploads</code> directory:</p>
+
+  <ul id="fileList"></ul>
+
+  <script>
+    async function loadFiles() {
+      try {
+        const response = await fetch('/uploads');
+        const text = await response.text();
+
+        // Your server probably returns an HTML autoindex
+        // We'll extract links to files from that HTML
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const links = Array.from(doc.querySelectorAll('a'))
+          .map(a => a.getAttribute('href'))
+          .filter(href => href && href !== "../");
+
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = '';
+
+        links.forEach(href => {
+          const fileName = decodeURIComponent(href.replace(/^.*\//, ''));
+          const li = document.createElement('li');
+
+          const fileLink = document.createElement('a');
+          fileLink.href = '/uploads/' + encodeURIComponent(fileName);
+          fileLink.textContent = fileName;
+          fileLink.target = '_blank';
+
+          const delBtn = document.createElement('button');
+          delBtn.textContent = '❌';
+          delBtn.className = 'delete-btn';
+          delBtn.title = 'Delete file';
+          delBtn.onclick = async (e) => {
+            e.preventDefault();
+            if (!confirm(`Delete ${fileName}?`)) return;
+
+            const res = await fetch('/uploads/' + encodeURIComponent(fileName), {
+              method: 'DELETE'
+            });
+
+            if (res.status === 204) {
+              alert('Deleted: ' + fileName);
+              await loadFiles(); // refresh list
+            } else {
+              alert('Failed to delete ' + fileName + ' (status ' + res.status + ')');
+            }
+          };
+
+          li.appendChild(fileLink);
+          li.appendChild(delBtn);
+          fileList.appendChild(li);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Reload list when upload finishes
+    document.getElementById('uploadForm').onsubmit = () => {
+      setTimeout(loadFiles, 1000); // small delay so upload finishes
+    };
+
+    loadFiles();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

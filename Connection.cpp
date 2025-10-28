@@ -796,8 +796,114 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 		}
 	} /*else if (request_method == "POST") {
 
-	} */ else if (request_method == "DELETE") {
-		// delete source if available and
+	
+	} */
+	
+
+	else if (request_method == "DELETE") {
+
+		//is delete in the allowed_methods vector?
+		bool delete_allowed = false;
+		if(server.locations[_location_block_index].allowed_methods_present)
+		{
+				for(std::vector<std::string>::iterator it = server.locations[_location_block_index].allowed_methods.begin(); it != server.locations[_location_block_index].allowed_methods.end(); it++)
+				{
+					if(*it == "DELETE")
+					{
+						delete_allowed = true;
+					}
+				}
+		}
+		if(delete_allowed == false)
+		{
+			std::cout << "delete is not allowed" << std::endl;
+			generate_error_page(webserv, "405", server);
+			//generate headers
+			this->generate_headers();
+			this->_response.assemble();
+			webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+			return;
+		}
+		std::cout << "delete is  allowed" << std::endl;
+	
+
+		if(request_method == "DELETE" && _request.get_target().compare(0, 8, "/uploads") == 0)
+		{
+		
+			std::cout << "WE are trying to delete a source" << std::endl;
+			//is source available?
+			//what is the source? -> normalize it
+			std::string target_path = _request.get_target();
+			target_path = "." + _request.get_target();
+			std::cout << "sanatized target path is: " << target_path << std::endl;
+			//does it exist?
+			struct stat st;
+			if (stat(target_path.c_str(), &st) == -1) 
+			{
+				if (errno == ENOENT)
+				{
+					std::cout << "I go in heeeeerree" << std::endl;
+					generate_error_page(webserv, "404", server); //does not exist
+					//generate headers
+					this->generate_headers();
+					this->_response.assemble();
+					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				}
+					
+				else if (errno == EACCES)
+				{
+					generate_error_page(webserv, "403", server); //not accessible
+					//generate headers
+					this->generate_headers();
+					this->_response.assemble();
+					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				}
+					
+				else
+				{
+					generate_error_page(webserv, "500", server); //stat failed
+					//generate headers
+					this->generate_headers();
+					this->_response.assemble();
+					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				}
+				return;
+			}
+
+			// is it a regular file?
+			if (!S_ISREG(st.st_mode)) 
+			{
+				generate_error_page(webserv, "403", server); //not accessible
+				//generate headers
+				this->generate_headers();
+				this->_response.assemble();
+				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				return;
+			}
+			//remove file
+			if (remove(target_path.c_str()) == 0)
+			{
+				std::cout << "Deleted successfully" << std::endl;
+				_response.set_status_code("204");
+				_response.set_status_string("No Content");
+				_response.set_header("Content-Length", "0");
+				this->generate_headers();
+				this->_response.assemble();
+				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				return;
+			}	
+			else
+			{
+				generate_error_page(webserv, "500", server);
+				//generate headers
+				this->generate_headers();
+				this->_response.assemble();
+				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				return;
+			}
+				
+		}
+
 	}
 }
 
@@ -896,6 +1002,8 @@ int	Connection::write_to_client(Webserver &webserv) {
 	//std::cout << "FINAL:" << std::endl;
 	//std::cout << response << std::endl << std::endl;
 	size_t n = write(fd, response.c_str(), response.size());
+	std::cout << "Response:" << std::endl << std::endl;
+		std::cout << response << std::endl;
 	if (n < 0) {
 		close(fd);
 		webserv.remove_from_poll(fd);
@@ -931,8 +1039,6 @@ int	Connection::write_to_client(Webserver &webserv) {
 			*/
 			this->get_source().set_fd(-1);
 		}
-		// std::cout << "Response:" << std::endl << std::endl;
-		// std::cout << response << std::endl;
 		return 1;
 	}
 }
