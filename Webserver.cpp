@@ -308,7 +308,6 @@ void	Webserver::_check_for_timeouts() {
 				this->_connections[i].generate_error_page(*this, "504", server);
 				if (this->_connections[i].get_source().get_fd() != -1)
 				{
-
 					return;
 				}
 				//generate headers

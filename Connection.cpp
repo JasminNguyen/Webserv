@@ -468,12 +468,10 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 	size_t pos_last_boundary = request_body.find(last_boundary);
 	if(pos_first_boundary == std::string::npos)
 	{
-		std::cout << "1" << std::endl;
 		return -1;
 	}
 	if(pos_last_boundary == std::string::npos)
 	{
-		std::cout << "1.1" << std::endl;
 		return -1;
 	}
 	std::string header;
@@ -486,7 +484,6 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 	size_t pos_header_end = request_body.find("\r\n\r\n", pos_first_boundary);	//find header end
 	if(pos_header_end == std::string::npos)
 	{
-		std::cout << "2" << std::endl;
 		return -1;
 	}
 	header = request_body.substr(pos, pos_header_end - pos); //build header substring
@@ -504,7 +501,6 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 		size_t pos_line_end = header.find("\r\n", pos_content_disposition);
 		if(pos_content_disposition == std::string::npos || pos_line_end == std::string::npos)
 		{
-			std::cout << "3" << std::endl;
 			return -1;
 		}
 		std::string line = header.substr(pos_content_disposition, pos_line_end - pos_content_disposition);
@@ -541,7 +537,7 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 			if(filename.empty())
 			{
 				std::cout << "no filename present - just a field" << std::endl;
-				//further parsing needed
+				//further parsing
 			}
 			this->filename = filename;
 			// std::cout << "FILENAME:" << std::endl;
@@ -627,7 +623,7 @@ bool Connection::header_val_contains_multipart(std::string header_val)
 	}
 	return false;
 }
-void	Connection::handle_uploads(Webserver &webserv, configParser::ServerConfig &server)
+int	Connection::handle_uploads(Webserver &webserv, configParser::ServerConfig &server)
 {
 	//1. check for multipart
 	std::string header_val;
@@ -640,19 +636,34 @@ void	Connection::handle_uploads(Webserver &webserv, configParser::ServerConfig &
 			{
 				generate_error_page(webserv, "415", server); // unsupported media type -> type is wrong or no multipart
 				//add all the other stuff needed to generate error page properly
-				return;
+				if (this->_source.get_fd() != -1)
+				{
+					return -1;
+				}
+				//generate headers
+				this->generate_headers();
+				this->_response.assemble();
+				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				return -1;
 			}
 		}
 	}
 	//is it properly unchunked?
 	//2. extract the boundary (acting as a delimiter) from the header
-
 	std::string boundary;
     if(!extract_boundary_from_content_type_header(header_val, boundary))
 	{
-        generate_error_page(webserv, "400", server); // says multipart but missing boundary -> malformed
+        generate_error_page(webserv, "415", server); // says multipart but missing boundary -> malformed
 		//add all the other stuff needed to generate error page properly
-		return;
+		if (this->_source.get_fd() != -1)
+		{
+			return -1;
+		}
+		//generate headers
+		this->generate_headers();
+		this->_response.assemble();
+		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+		return -1;
     }
 	std::cout << "BOUNDARY IS: " << boundary << std::endl;
 
@@ -668,13 +679,126 @@ void	Connection::handle_uploads(Webserver &webserv, configParser::ServerConfig &
 	// std::cout << "++++++++++++++++++" << std::endl;
 	if(extract_multipart_content_in_request_body(boundary, this->_request.get_body()) == -1)
 	{
-		std::cout << "DO I GET HERE?" << std::endl;
-		//which error page do I need here?????
+		generate_error_page(webserv, "400", server); // says multipart but missing boundary -> malformed
+		//add all the other stuff needed to generate error page properly
+		if (this->_source.get_fd() != -1)
+		{
+			return -1;
+		}
+		//generate headers
+		this->generate_headers();
+		this->_response.assemble();
+		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+		return -1;
 	}
 	if(write_content_to_uploads_directory() == -1)
 	{
-		//which error page do I need here?????
+		generate_error_page(webserv, "500", server); 
+		if (this->_source.get_fd() != -1)
+		{
+			return -1;
+		}
+		//generate headers
+		this->generate_headers();
+		this->_response.assemble();
+		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+		return -1;
 	}
+	return 1;
+}
+
+void Connection::delete_file(Webserver &webserv, configParser::ServerConfig &server)
+{
+	std::cout << "WE are trying to delete a source" << std::endl;
+			//is source available?
+			//what is the source? -> normalize it
+			std::string target_path = _request.get_target();
+			target_path = "." + _request.get_target();
+			std::cout << "sanatized target path is: " << target_path << std::endl;
+			//does it exist?
+			struct stat st;
+			if (stat(target_path.c_str(), &st) == -1) 
+			{
+				if (errno == ENOENT)
+				{
+					generate_error_page(webserv, "404", server); //does not exist
+					if (this->_source.get_fd() != -1)
+					{
+						return;
+					}
+					//generate headers
+					this->generate_headers();
+					this->_response.assemble();
+					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				}
+					
+				else if (errno == EACCES)
+				{
+					generate_error_page(webserv, "403", server); //not accessible
+					if (this->_source.get_fd() != -1)
+					{
+						return;
+					}
+					//generate headers
+					this->generate_headers();
+					this->_response.assemble();
+					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				}
+					
+				else
+				{
+					generate_error_page(webserv, "500", server); //stat failed
+					if (this->_source.get_fd() != -1)
+					{
+						return;
+					}
+					//generate headers
+					this->generate_headers();
+					this->_response.assemble();
+					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				}
+				return;
+			}
+
+			// is it a regular file?
+			if (!S_ISREG(st.st_mode)) 
+			{
+				generate_error_page(webserv, "403", server); //not accessible
+				if (this->_source.get_fd() != -1)
+				{
+					return;
+				}
+				//generate headers
+				this->generate_headers();
+				this->_response.assemble();
+				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				return;
+			}
+			//remove file
+			if (remove(target_path.c_str()) == 0)
+			{
+				std::cout << "Deleted successfully" << std::endl;
+				_response.set_status_code("204");
+				_response.set_status_string("No Content");
+				_response.set_header("Content-Length", "0");
+				this->generate_headers();
+				this->_response.assemble();
+				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				return;
+			}	
+			else
+			{
+				generate_error_page(webserv, "500", server);
+				if (this->_source.get_fd() != -1)
+				{
+					return;
+				}
+				//generate headers
+				this->generate_headers();
+				this->_response.assemble();
+				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+				return;
+			}
 }
 void	Connection::create_response(Webserver &webserv, configParser::ServerConfig &server) {
 	//CHECK FOR POST, GET, DELETE METHOD
@@ -689,7 +813,9 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 		//FOR UPLOADS
 		if(_request.get_target() == "/uploads" && request_method == "POST")
 		{
-			this->handle_uploads(webserv, server);
+			if (this->handle_uploads(webserv, server) == -1) {
+				return;
+			}
 		}
 		if (this->request_requires_cgi(server)) {
 			// std::cout << "Hi from the if block to initiate CGI" << std::endl;
@@ -739,7 +865,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 							generate_error_page(webserv, "403", server);
 							if (this->_source.get_fd() != -1)
 							{
-								return; // body will be read later
+								return;
 							}
 							//generate headers
 							this->generate_headers();
@@ -749,7 +875,8 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 						}
 					}
 				}
-				if (access(file_path.c_str() , R_OK) == -1) {
+				if (access(file_path.c_str() , R_OK) == -1) 
+				{
 					std::cerr << "File doesn't exist or isn't readable." << std::endl;
 					if (errno == EACCES)
 					{
@@ -765,7 +892,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 					}
 					if (this->_source.get_fd() != -1)
 					{
-						return; // body will be read later
+						return;
 					}
 					//generate headers
 					this->generate_headers();
@@ -773,7 +900,9 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 					return;
 
-				} else {
+				} 
+				else 
+				{
 					// open file
 					// std::cout << "Am I a file?" << std::endl;
 					int fd = open(file_path.c_str(), O_RDONLY);
@@ -828,6 +957,10 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 		{
 			std::cout << "delete is not allowed" << std::endl;
 			generate_error_page(webserv, "405", server);
+			if (this->_source.get_fd() != -1)
+			{
+				return;
+			}
 			//generate headers
 			this->generate_headers();
 			this->_response.assemble();
@@ -839,79 +972,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 
 		if(request_method == "DELETE" && _request.get_target().compare(0, 8, "/uploads") == 0)
 		{
-
-			std::cout << "WE are trying to delete a source" << std::endl;
-			//is source available?
-			//what is the source? -> normalize it
-			std::string target_path = _request.get_target();
-			target_path = "." + _request.get_target();
-			std::cout << "sanatized target path is: " << target_path << std::endl;
-			//does it exist?
-			struct stat st;
-			if (stat(target_path.c_str(), &st) == -1)
-			{
-				if (errno == ENOENT)
-				{
-					std::cout << "I go in heeeeerree" << std::endl;
-					generate_error_page(webserv, "404", server); //does not exist
-					//generate headers
-					this->generate_headers();
-					this->_response.assemble();
-					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-				}
-
-				else if (errno == EACCES)
-				{
-					generate_error_page(webserv, "403", server); //not accessible
-					//generate headers
-					this->generate_headers();
-					this->_response.assemble();
-					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-				}
-
-				else
-				{
-					generate_error_page(webserv, "500", server); //stat failed
-					//generate headers
-					this->generate_headers();
-					this->_response.assemble();
-					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-				}
-				return;
-			}
-
-			// is it a regular file?
-			if (!S_ISREG(st.st_mode))
-			{
-				generate_error_page(webserv, "403", server); //not accessible
-				//generate headers
-				this->generate_headers();
-				this->_response.assemble();
-				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-				return;
-			}
-			//remove file
-			if (remove(target_path.c_str()) == 0)
-			{
-				std::cout << "Deleted successfully" << std::endl;
-				_response.set_status_code("204");
-				_response.set_status_string("No Content");
-				_response.set_header("Content-Length", "0");
-				this->generate_headers();
-				this->_response.assemble();
-				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-				return;
-			}
-			else
-			{
-				generate_error_page(webserv, "500", server);
-				//generate headers
-				this->generate_headers();
-				this->_response.assemble();
-				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-				return;
-			}
-
+			delete_file(webserv, server);	
 		}
 
 	}
@@ -1012,8 +1073,8 @@ int	Connection::write_to_client(Webserver &webserv) {
 	//std::cout << "FINAL:" << std::endl;
 	//std::cout << response << std::endl << std::endl;
 	size_t n = write(fd, response.c_str(), response.size());
-	std::cout << "Response:" << std::endl << std::endl;
-		std::cout << response << std::endl;
+	// std::cout << "Response:" << std::endl << std::endl;
+	// 	std::cout << response << std::endl;
 	if (n < 0) {
 		if (close(fd) == -1) {
 			throw Exceptions("close call 12 failed.");
@@ -1170,18 +1231,25 @@ configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 			this->setLocationBlockIndex(best_index); //setting the location block index (needed in handle_request)
 			//std::cout << "location in match_location_block is here: " << &best_location->redirection_present << std::endl;
 		}
-		else
-		{
-			// 	_response->set_status_code("404");
-			// _response->set_body("Not Found");
-			//throw std::runtime_error("No match found in location blocks");
-			//std::cout << "No location block match found - WE ARE GENERATING THE 404 ERROR PAGE" << std::endl;
-			this->generate_error_page(webserv, "404", *matched_server);
-			//generate headers
-			this->generate_headers();
-			this->_response.assemble();
-			webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+		if (webserv.get_polls().empty()) {
+			
 		}
+		// else
+		// {
+		// 	// 	_response->set_status_code("404");
+		// 	// _response->set_body("Not Found");
+		// 	//throw std::runtime_error("No match found in location blocks");
+		// 	//std::cout << "No location block match found - WE ARE GENERATING THE 404 ERROR PAGE" << std::endl;
+		// 	this->generate_error_page(webserv, "404", *matched_server);
+		// 	if (this->_source.get_fd() != -1)
+		// 	{
+		// 		return;
+		// 	}
+		// 	//generate headers
+		// 	this->generate_headers();
+		// 	this->_response.assemble();
+		// 	webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+		// }
 
 	}
 	else //if there are no locations -> we still have to construct the script_path

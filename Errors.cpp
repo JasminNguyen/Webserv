@@ -4,19 +4,40 @@
 
 std::string find_error_message(std::string error_code)
 {
-    if (error_code == "403") {
+	if( error_code == "400")
+	{
+		return "Bad Request";
+	}
+    else if (error_code == "403") 
+	{
         return "Forbidden";
-    } else if (error_code == "404") {
+    } 
+	else if (error_code == "404") 
+	{
         return "Not Found";
-    } else if (error_code == "405") {
+    } 
+	else if (error_code == "405") 
+	{
         return "Method Not Allowed";
-    } else if (error_code == "413") {
+    } 
+	else if (error_code == "413") 
+	{
         return "Payload Too Large";
-    } else if (error_code == "500") {
+    } 
+	else if (error_code == "415")
+	{
+		return "Unsupported Media Type";
+	}
+	else if (error_code == "500") 
+	{
         return "Internal Server Error";
-    } else if (error_code == "504") {
+    } 
+	else if (error_code == "504") 
+	{
 		return ("Gateway Timeout");
-	} else {
+	} 
+	else 
+	{
         return "Unknown Error";
     }
 }

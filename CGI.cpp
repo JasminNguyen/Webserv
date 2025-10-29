@@ -268,7 +268,16 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
 
         if (chdir(change_dir_to.c_str()) == -1)
         {
-            throw Exceptions("chdir didn't work");
+			conn.generate_error_page(webserver, "500", server_block);
+			if (conn.get_source().get_fd() != -1)
+			{
+				return;
+			}
+			//generate headers
+			conn.generate_headers();
+			conn.get_response().assemble();
+			webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+			return;
         }
 		//std::cout << "pwd: " << getcwd(buf, 100) << std::endl;
 
@@ -276,7 +285,19 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
 		std::string script_name = script_path_string.substr(pos_last_slash + 1);
 		//std::cout << "script name is: " << script_name << std::endl;
 
-        execve(script_name.c_str(), argv, envp);
+        if(execve(script_name.c_str(), argv, envp) == -1)
+		{
+			conn.generate_error_page(webserver, "500", server_block);
+			if (conn.get_source().get_fd() != -1)
+			{
+				return;
+			}
+			//generate headers
+			conn.generate_headers();
+			conn.get_response().assemble();
+			webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+			return;
+		}
 
         perror("execve failed"); // only runs if exec fails
         exit(1);
