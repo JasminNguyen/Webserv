@@ -224,12 +224,20 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         dup2(out_pipe[1], STDERR_FILENO); // send CGI stderr to the same pipe
 
         //closing unused pipe ends (those that used by server)
-        close(in_pipe[1]);
-        close(out_pipe[0]);
+        if (close(in_pipe[1]) == -1) {
+			throw Exceptions("close call 1 failed.");
+		}
+        if (close(out_pipe[0]) == -1) {
+			throw Exceptions("close call 2 failed.");
+		}
 
         //I have to close the other two as well to avoid leaking fds (I can do that since I duplicated them and they replace stdin/out)
-        close(in_pipe[0]);
-        close(out_pipe[1]);
+        if (close(in_pipe[0]) == -1) {
+			throw Exceptions("close call 3 failed.");
+		}
+        if (close(out_pipe[1]) == -1) {
+			throw Exceptions("close call 4 failed.");
+		}
 
         //execute
         // set up script_path, argv + envp, then exec
@@ -278,15 +286,21 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
 
 
     // closing unused pipe ends
-    close(in_pipe[0]);  // we don't read from stdin pipe
-    close(out_pipe[1]); // we don't write to CGI output pipe
+    if (close(in_pipe[0]) == -1) {
+		throw Exceptions("close call 5 failed.");
+	}  // we don't read from stdin pipe
+    if (close(out_pipe[1]) == -1) {
+		throw Exceptions("close call 6 failed.");
+	} // we don't write to CGI output pipe
 
     // write to in_pipe[1] → CGI stdin (cgi instructions)
     // read from out_pipe[0] ← CGI output (result of what cgi made)
     // std::cout << "body of POST request is: " << request.get_body() << std::endl;
     // std::cout << "size of POST request is: " << request.get_body().size() << std::endl;
     write(in_pipe[1], request.get_body().c_str(), request.get_body().size()); //writing request to CGI via pipe
-    close(in_pipe[1]); //close that pipe
+    if (close(in_pipe[1]) == -1) {
+		throw Exceptions("close call 7 failed.");
+	} //close that pipe
 
     webserver.add_connection_to_poll(out_pipe[0]); //add out_pipe end to pollfd vector
    // webserver.find_triggered_source(webserver.get_polls());

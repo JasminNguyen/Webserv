@@ -1,4 +1,5 @@
 #include "webserv.hpp"
+#include "Exceptions.hpp"
 
 
 std::string trim(const std::string& str)
@@ -25,4 +26,30 @@ std::string generate_date() {
     strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", &gmt);
 
     return std::string(buf);
+}
+
+void	unblock_fd(int fd) {
+	int	flags_before;
+	int flags;
+	int flags_after;
+
+	flags_before = fcntl(fd, F_GETFL);
+	if (flags_before == -1) {
+		throw Exceptions("fcntl failed on getting flags before.");
+	}
+
+	flags = flags_before + O_NONBLOCK;
+
+	if (fcntl(fd, F_SETFL, flags) == -1) {
+		throw Exceptions("fcntl failed on setting flags.");
+	}
+
+	flags_after = fcntl(fd, F_GETFL);
+	if (flags_after == -1) {
+		throw Exceptions("fcntl failed on getting flags after.");
+	}
+	if (flags_after - flags_before != 2048) {
+		//std::cout << "Flags difference is: " << flags_after - flags_before << std::endl;
+		std::cout << "Flags problem!" << std::endl;
+	}
 }

@@ -31,5 +31,6 @@
 //helper functions
 std::string trim(const std::string& str);
 std::string generate_date();
+void		unblock_fd(int fd);
 
 #endif

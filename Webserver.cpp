@@ -85,6 +85,8 @@ void	Webserver::add_connection_to_poll(int fd) {
 	struct pollfd	poll;
 	poll.fd = fd;
 	poll.events =  POLLIN; // which events do we need to track ???
+	poll.revents = 0;
+	//unblock_fd(fd);
 	this->_polls.push_back(poll);
 }
 
@@ -131,17 +133,21 @@ Connection *Webserver::get_triggered_connection(int poll_fd) {
 int	Webserver::event_router(Connection *con, pollfd poll) {
 	int read_status = 0;
 	int send_status = 0;
+	int status = 0;
 
 	if (con->listeningSocketTriggered(poll.fd)) {
 		//std::cout << "POLLIN on LS: " << poll.fd << std::endl;
 		con->accept_request(*this);
 		return 1;
 	} else if (con->clientRequestIncoming(poll)) {
-		if (con->handle_request(*this) == -1) {
+		status = con->handle_request(*this);
+		if (status == -1) {
 			this->remove_connection(con);
 			return 0;
 		} else {
-			con->set_time_stamp();
+			if (status == 1) {
+				con->set_time_stamp();
+			}
 			return 1;
 		}
 	} else if (con->clientExpectingResponse(poll)) {
@@ -192,12 +198,12 @@ void	Webserver::launch() {
 			throw(std::exception());
 		}
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
-			if (this->_polls[i].revents & POLLERR + POLLNVAL + POLLRDHUP) {
+			if (this->_polls[i].revents & POLLERR + POLLNVAL) {
 
 				std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
 				pollfd poll = this->_polls[i];
-				con = this->get_triggered_connection(poll.fd);	
-				if(con->_process_uses_cgi())
+				con = this->get_triggered_connection(poll.fd);
+				if(con->_process_uses_cgi() && !con->get_source().get_cgi_finished())
 				{
 					int status;
 					kill(con->get_source().get_pid(), SIGTERM);
@@ -212,7 +218,7 @@ void	Webserver::launch() {
 				this->remove_connection(con);
 				n--;
 			}
-			else if (this->_polls[i].revents & POLLIN + POLLOUT + POLLHUP) {
+			else if (this->_polls[i].revents & POLLIN + POLLOUT + POLLHUP + POLLRDHUP) {
 				pollfd poll = this->_polls[i];
 				con = this->get_triggered_connection(poll.fd);
 				i += this->event_router(con, poll);
@@ -295,7 +301,9 @@ void	Webserver::_check_for_timeouts() {
 				this->_connections[i].get_response().set_body("");
 				configParser::ServerConfig server = this->_connections[i].match_location_block(*this);
 				this->remove_from_poll(this->_connections[i].get_source().get_fd());
-				close(this->_connections[i].get_source().get_fd());
+				if (close(this->_connections[i].get_source().get_fd()) == -1) {
+					throw Exceptions("close call 17 failed.");
+				}
 				this->_connections[i].get_source().set_fd(-1);
 				this->_connections[i].generate_error_page(*this, "504", server);
 				if (this->_connections[i].get_source().get_fd() != -1)

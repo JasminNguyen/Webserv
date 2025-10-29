@@ -5,7 +5,7 @@ Source::Source() {
     this->_fd = -1;
     this->_path = "";
     this->_pid = 0;
-	this->_cgi_finished = 0;
+	this->_cgi_finished = false;
 }
 
 Source::Source(const Source &ref) {
@@ -13,7 +13,7 @@ Source::Source(const Source &ref) {
     this->_fd = ref._fd;
     this->_path = ref._path;
     this->_pid = ref._pid;
-	this->_cgi_finished = 0;
+	this->_cgi_finished = ref._cgi_finished;
 }
 
 Source::~Source() {
@@ -26,7 +26,7 @@ Source &Source::operator=(const Source &ref) {
         this->_fd = ref._fd;
         this->_path = ref._path;
         this->_pid = ref._pid;
-		this->_cgi_finished = 0;
+		this->_cgi_finished = ref._cgi_finished;
     }
     return *this;
 }

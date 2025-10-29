@@ -123,6 +123,9 @@ bool	Connection::_is_cgi_still_running() {
 	int	status;
 
 	int n = -5;
+	if (this->_source.get_cgi_finished()) {
+		return false;
+	}
 	n = waitpid(pid, &status, WNOHANG);
 
 	if (n == 0) {
@@ -189,7 +192,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		int status;
 		int n = 0;
 
-		if(this->get_source().get_pid())
+		if(this->get_source().get_pid() && !this->_source.get_cgi_finished())
 		{
 			n = waitpid(this->_source.get_pid(), &status, 0);
 			if(n > 0)
@@ -200,7 +203,9 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		}
 
 		// close source fd
-		close(src_fd);
+		if (close(src_fd) == -1) {
+			throw Exceptions("close call 8 failed.");
+		}
 		// remove fd from pollfd vector
 		webserver.remove_from_poll(src_fd);
 		this->_source.set_fd(-1);
@@ -312,7 +317,7 @@ int		Connection::has_index_file(const std::string& dir_path, const std::string& 
 
 void Connection::dismiss_old_request(Webserver &webserv)
 {
-	if(this->_process_uses_cgi())
+	if(this->_process_uses_cgi() && !this->_source.get_cgi_finished())
 	{
 		int status;
 		kill(this->get_source().get_pid(), SIGTERM);
@@ -325,7 +330,9 @@ void Connection::dismiss_old_request(Webserver &webserv)
 	}
 	// std::cout << "we are dismissing the old request" << std::endl;
 	size_t fd = this->_source.get_fd();
-	close(fd);
+	if (close(fd) == -1) {
+		throw Exceptions("close call 9 failed.");
+	}
 	webserv.remove_from_poll(fd);
 	this->_source.set_fd(-1);
 	// std::cout << "source_fd is now: " << this->_source.get_fd() << std::endl;
@@ -437,13 +444,16 @@ int	Connection::write_content_to_uploads_directory()
         if (n <= 0)
         {
             perror("write");
-            close(fd);
+            if (close(fd) == -1) {
+				throw Exceptions("close call 10 failed.");
+			}
             return -1;
         }
         written += n;
     }
-
-    close(fd);
+	if (close(fd) == -1) {
+		throw Exceptions("close call 11 failed.");
+	}
 	return 1;
 }
 //JUST FOR ONE CONTENT NOW (FILE)
@@ -796,9 +806,9 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 		}
 	} /*else if (request_method == "POST") {
 
-	
+
 	} */
-	
+
 
 	else if (request_method == "DELETE") {
 
@@ -825,11 +835,11 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 			return;
 		}
 		std::cout << "delete is  allowed" << std::endl;
-	
+
 
 		if(request_method == "DELETE" && _request.get_target().compare(0, 8, "/uploads") == 0)
 		{
-		
+
 			std::cout << "WE are trying to delete a source" << std::endl;
 			//is source available?
 			//what is the source? -> normalize it
@@ -838,7 +848,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 			std::cout << "sanatized target path is: " << target_path << std::endl;
 			//does it exist?
 			struct stat st;
-			if (stat(target_path.c_str(), &st) == -1) 
+			if (stat(target_path.c_str(), &st) == -1)
 			{
 				if (errno == ENOENT)
 				{
@@ -849,7 +859,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 					this->_response.assemble();
 					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 				}
-					
+
 				else if (errno == EACCES)
 				{
 					generate_error_page(webserv, "403", server); //not accessible
@@ -858,7 +868,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 					this->_response.assemble();
 					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 				}
-					
+
 				else
 				{
 					generate_error_page(webserv, "500", server); //stat failed
@@ -871,7 +881,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 			}
 
 			// is it a regular file?
-			if (!S_ISREG(st.st_mode)) 
+			if (!S_ISREG(st.st_mode))
 			{
 				generate_error_page(webserv, "403", server); //not accessible
 				//generate headers
@@ -891,7 +901,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 				this->_response.assemble();
 				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 				return;
-			}	
+			}
 			else
 			{
 				generate_error_page(webserv, "500", server);
@@ -901,7 +911,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 				return;
 			}
-				
+
 		}
 
 	}
@@ -1005,7 +1015,9 @@ int	Connection::write_to_client(Webserver &webserv) {
 	std::cout << "Response:" << std::endl << std::endl;
 		std::cout << response << std::endl;
 	if (n < 0) {
-		close(fd);
+		if (close(fd) == -1) {
+			throw Exceptions("close call 12 failed.");
+		}
 		webserv.remove_from_poll(fd);
 		this->get_socket().set_fd(-1);
 		return -1;
@@ -1015,7 +1027,9 @@ int	Connection::write_to_client(Webserver &webserv) {
 		}
 		// if request has Connection: close"
 		if (this->get_value_from_response_map("Connection") == "close") {
-			close(fd);
+			if (close(fd) == -1) {
+				throw Exceptions("close call 13 failed.");
+			}
 			webserv.remove_from_poll(fd);
 			this->get_socket().set_fd(-1);
 		}
@@ -1054,7 +1068,7 @@ int	Connection::send_response(Webserver &webserv) {
 			return 1;
 		}
 	} else {
-		std::cout << "Response is still empty right now" << std::endl;
+		//std::cout << "Response is still empty right now" << std::endl;
 		return 0;
 	}
 }
@@ -1201,7 +1215,7 @@ bool	Connection::clientRequestIncoming(pollfd poll) {
 	{
 		//std::cout << "POLLHUP with fd: " << poll.fd << std::endl;
 	}
-	if (socket_fd == poll.fd && poll.revents & POLLIN + POLLHUP) {
+	if (socket_fd == poll.fd && poll.revents & POLLIN + POLLHUP + POLLRDHUP) {
 		return true;
 	} else {
 		return false;
@@ -1274,7 +1288,7 @@ bool	Connection::is_cgi_broken(Webserver &webserver) {
 
 	int n = waitpid(this->_source.get_pid(), &status, WNOHANG);
 	if (n == -1) {
-		throw Exceptions("Waitpid fails()");
+		throw Exceptions("Waitpid() fails even though it shouldn't.");
 	} else if (n == 0) {
 		//std::cout << "CGI is still running" << std::endl;
 		return false;
@@ -1283,10 +1297,10 @@ bool	Connection::is_cgi_broken(Webserver &webserver) {
 		webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
 		//std::cout << "cgi process is ended" << std::endl;
 		if (WIFEXITED(status)) {
-			std::cout << "CGI terminated normally" << std::endl;
+			//std::cout << "CGI terminated normally" << std::endl;
 			return false;
 		} else {
-			std::cout << "CGI broke" << std::endl;
+			//std::cout << "CGI broke" << std::endl;
 			return true;
 		}
 	}
@@ -1295,11 +1309,15 @@ bool	Connection::is_cgi_broken(Webserver &webserver) {
 
 void	Connection::close_fds() {
 	if (this->_sock.get_fd() >= 0) {
-		close(this->_sock.get_fd());
+		if (close(this->_sock.get_fd()) == -1) {
+			throw Exceptions("close call 15 failed.");
+		}
 		this->_sock.set_fd(-1);
 	}
 	if (this->_source.get_fd() >= 0) {
-		close(this->_source.get_fd());
+		if (close(this->_source.get_fd()) == -1) {
+			throw Exceptions("close call 16 failed.");
+		}
 		this->_source.set_fd(-1);
 	}
 }
