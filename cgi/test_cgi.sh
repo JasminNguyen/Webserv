@@ -2,8 +2,8 @@
 # Minimal CGI shell script
 
 # CGI must always output headers first:
-echo "Content-Type: text/html"
-echo ""   # Blank line to separate headers from body
+#echo "Content-Type: text/html"
+#echo ""   # Blank line to separate headers from body
 
 # Body
 echo "<html>"

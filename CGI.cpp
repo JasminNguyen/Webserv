@@ -182,6 +182,11 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
         {
             return; // body will be read later
         }
+		conn.generate_headers();
+		conn.get_response().assemble();
+		webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		return;
+
     }
     if (access(conn.get_source().get_path().c_str() , X_OK) == -1)
     {
@@ -192,6 +197,10 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
             {
                 return;
             }
+			conn.generate_headers();
+			conn.get_response().assemble();
+			webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+			return;
         }
     }
     //creating 2 pipes (one that the cgi reads and one that the cgi writes to)
@@ -206,13 +215,29 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
     int out_pipe[2];
     if(pipe(in_pipe)== -1 || pipe(out_pipe) == -1)
     {
-        throw Exceptions("couldn't pipe");
+		conn.generate_error_page(webserver, "500", server_block);
+		if (conn.get_source().get_fd() != -1)
+        {
+            return;
+        }
+		conn.generate_headers();
+		conn.get_response().assemble();
+		webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		return;
     }
     pid_t pid = fork();
 	// std::cout << "pid is: " << pid << std::endl;
     if(pid == -1)
     {
-        throw Exceptions("couldn't fork");
+		conn.generate_error_page(webserver, "500", server_block);
+		if (conn.get_source().get_fd() != -1)
+        {
+            return;
+        }
+		conn.generate_headers();
+		conn.get_response().assemble();
+		webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		return;
     }
     conn.get_source().set_pid(pid);
     if(pid == 0) //child
@@ -225,18 +250,54 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
 
         //closing unused pipe ends (those that used by server)
         if (close(in_pipe[1]) == -1) {
-			throw Exceptions("close call 1 failed.");
+			// INTERNAL
+			conn.generate_error_page(webserver, "500", server_block);
+			if (conn.get_source().get_fd() != -1)
+			{
+			    return;
+			}
+			conn.generate_headers();
+			conn.get_response().assemble();
+			webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+			return;
 		}
         if (close(out_pipe[0]) == -1) {
-			throw Exceptions("close call 2 failed.");
+			// INTERNAL
+			conn.generate_error_page(webserver, "500", server_block);
+			if (conn.get_source().get_fd() != -1)
+			{
+			    return;
+			}
+			conn.generate_headers();
+			conn.get_response().assemble();
+			webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+			return;
 		}
 
         //I have to close the other two as well to avoid leaking fds (I can do that since I duplicated them and they replace stdin/out)
         if (close(in_pipe[0]) == -1) {
-			throw Exceptions("close call 3 failed.");
+			// INTERNAL
+			conn.generate_error_page(webserver, "500", server_block);
+			if (conn.get_source().get_fd() != -1)
+			{
+			    return;
+			}
+			conn.generate_headers();
+			conn.get_response().assemble();
+			webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+			return;
 		}
         if (close(out_pipe[1]) == -1) {
-			throw Exceptions("close call 4 failed.");
+			// INTERNAL
+			conn.generate_error_page(webserver, "500", server_block);
+			if (conn.get_source().get_fd() != -1)
+			{
+			    return;
+			}
+			conn.generate_headers();
+			conn.get_response().assemble();
+			webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+			return;
 		}
 
         //execute
@@ -308,19 +369,58 @@ void CGI::run_cgi(Request& request, configParser::ServerConfig & server_block, W
 
     // closing unused pipe ends
     if (close(in_pipe[0]) == -1) {
-		throw Exceptions("close call 5 failed.");
+		// INTERNAL
+		conn.generate_error_page(webserver, "500", server_block);
+		if (conn.get_source().get_fd() != -1)
+        {
+            return;
+        }
+		conn.generate_headers();
+		conn.get_response().assemble();
+		webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		return;
 	}  // we don't read from stdin pipe
     if (close(out_pipe[1]) == -1) {
-		throw Exceptions("close call 6 failed.");
+		// INTERNAL
+		conn.generate_error_page(webserver, "500", server_block);
+		if (conn.get_source().get_fd() != -1)
+        {
+            return;
+        }
+		conn.generate_headers();
+		conn.get_response().assemble();
+		webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		return;
 	} // we don't write to CGI output pipe
 
     // write to in_pipe[1] → CGI stdin (cgi instructions)
     // read from out_pipe[0] ← CGI output (result of what cgi made)
     // std::cout << "body of POST request is: " << request.get_body() << std::endl;
     // std::cout << "size of POST request is: " << request.get_body().size() << std::endl;
-    write(in_pipe[1], request.get_body().c_str(), request.get_body().size()); //writing request to CGI via pipe
+    if (write(in_pipe[1], request.get_body().c_str(), request.get_body().size()) == -1) {
+		// INTERNAL ISSUE
+		// what should happen here?
+		conn.generate_error_page(webserver, "500", server_block);
+		if (conn.get_source().get_fd() != -1)
+        {
+            return;
+        }
+		conn.generate_headers();
+		conn.get_response().assemble();
+		webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		return;
+	} //writing request to CGI via pipe
     if (close(in_pipe[1]) == -1) {
-		throw Exceptions("close call 7 failed.");
+		// INTERNAL
+		conn.generate_error_page(webserver, "500", server_block);
+		if (conn.get_source().get_fd() != -1)
+        {
+            return;
+        }
+		conn.generate_headers();
+		conn.get_response().assemble();
+		webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		return;
 	} //close that pipe
 
     webserver.add_connection_to_poll(out_pipe[0]); //add out_pipe end to pollfd vector

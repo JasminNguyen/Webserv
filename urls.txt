@@ -1,0 +1,14 @@
+http://localhost:8080/images
+http://localhost:8080/errors
+http://localhost:8080/redirection1
+http://localhost:8080/test.html
+http://localhost:8080/redirection2
+http://localhost:8080/index.html
+http://localhost:8080/uploads
+http://localhost:8080/form.html
+http://localhost:8080/
+http://localhost:8080/cgi-bin/test_cgi.py
+http://localhost:8080/cgi-bin/test_cgi.php
+http://localhost:8080/cgi-bin/test_cgi.sh
+http://localhost:8080/index.htmljkg
+

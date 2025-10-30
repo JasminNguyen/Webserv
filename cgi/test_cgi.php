@@ -4,7 +4,7 @@
 // Minimal CGI PHP script
 
 // CGI headers
-header("Content-Type: text/html");
+//header("Content-Type: text/html");
 
 // Body
 echo "<html>";

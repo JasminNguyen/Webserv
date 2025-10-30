@@ -125,6 +125,7 @@ Connection *Webserver::get_triggered_connection(int poll_fd) {
 	if (!con) {
 		std::cout << "poll_fd is: " << poll_fd << std::endl;
 		std::cout << "ERROR!!!" << std::endl;
+		// INTERNAL ERROR - what to do here if we get here at all ???
 		throw Exceptions("Connection not found!");
 	}
 	return con;
@@ -183,6 +184,7 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 		}
 	} else {
 		std::cout << "WHAAAAAAAAAT???" << std::endl;
+		// INTERNAL ERROR - what to do here if we get here at all???
 		throw(std::exception());
 	}
 }
@@ -194,8 +196,7 @@ void	Webserver::launch() {
 		//std::cout << "Do we get here after having an empty response?" << std::endl;
 		int n = poll(this->_polls.data(), this->_polls.size(), 100);
 		if (n < 0) {
-			std::cerr << "Issue with poll" << std::endl;
-			throw(std::exception());
+			throw Exceptions("poll() call failed.");
 		}
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
 			if (this->_polls[i].revents & POLLERR + POLLNVAL) {
@@ -224,8 +225,10 @@ void	Webserver::launch() {
 				i += this->event_router(con, poll);
 				n--;
 			} else {
-				if (this->_polls[i].revents != 0)
+				if (this->_polls[i].revents != 0) {
+					// INTERNAL ERROR - should actually never get here - just skip through???
 					throw Exceptions("Other event triggered!");
+				}
 				i++;
 			}
 		}
@@ -302,7 +305,17 @@ void	Webserver::_check_for_timeouts() {
 				configParser::ServerConfig server = this->_connections[i].match_location_block(*this);
 				this->remove_from_poll(this->_connections[i].get_source().get_fd());
 				if (close(this->_connections[i].get_source().get_fd()) == -1) {
+					// INTERNAL ERROR
 					throw Exceptions("close call 17 failed.");
+					// conn.generate_error_page(webserver, "403", server_block);
+					// if (conn.get_source().get_fd() != -1)
+					// {
+					//     return;
+					// }
+					// conn.generate_headers();
+					// conn.get_response().assemble();
+					// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+					// return;
 				}
 				this->_connections[i].get_source().set_fd(-1);
 				this->_connections[i].generate_error_page(*this, "504", server);

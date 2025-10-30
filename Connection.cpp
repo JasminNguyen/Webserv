@@ -132,7 +132,17 @@ bool	Connection::_is_cgi_still_running() {
 		//std::cout << "CGI still running" << std::endl;
 		return true;
 	} else if (n == -1) {
+		// INTERNAL ISSUE
 		throw Exceptions("Waitpid fails somewhere else");
+		// conn.generate_error_page(webserver, "403", server_block);
+		// if (conn.get_source().get_fd() != -1)
+        // {
+        //     return;
+        // }
+		// conn.generate_headers();
+		// conn.get_response().assemble();
+		// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		// return;
 	} else {
 		this->_source.set_cgi_finished(true);
 		return false;
@@ -204,19 +214,29 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 
 		// close source fd
 		if (close(src_fd) == -1) {
+			// INTERNAL ISSUE
 			throw Exceptions("close call 8 failed.");
+			// conn.generate_error_page(webserver, "403", server_block);
+			// if (conn.get_source().get_fd() != -1)
+			// {
+			//     return;
+			// }
+			// conn.generate_headers();
+			// conn.get_response().assemble();
+			// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+			// return;
 		}
 		// remove fd from pollfd vector
 		webserver.remove_from_poll(src_fd);
 		this->_source.set_fd(-1);
 
-		
+
 		if(this->_process_uses_cgi() == true)
 		{
 			if(_response.get_body().find("<html>") == std::string::npos)
-			{	
-				
-				
+			{
+
+
 				_response.set_body("");
 				// std::cout << "RESPONSE from source:" << std::endl;
 				// std::cout << _response.get_body() << std::endl;
@@ -234,7 +254,7 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 				return 1; //what do I return here???
 			}
 		}
-		
+
 		// generate response parts
 		// this->_response.get_http_version() = "HTTP /1.1";
 		// this->_response.get_status_code() = "200";
@@ -356,7 +376,17 @@ void Connection::dismiss_old_request(Webserver &webserv)
 	// std::cout << "we are dismissing the old request" << std::endl;
 	size_t fd = this->_source.get_fd();
 	if (close(fd) == -1) {
+		// INTERNAL ISSUE
 		throw Exceptions("close call 9 failed.");
+		// conn.generate_error_page(webserver, "403", server_block);
+		// if (conn.get_source().get_fd() != -1)
+        // {
+        //     return;
+        // }
+		// conn.generate_headers();
+		// conn.get_response().assemble();
+		// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		// return;
 	}
 	webserv.remove_from_poll(fd);
 	this->_source.set_fd(-1);
@@ -423,10 +453,12 @@ int		Connection::check_content_length_too_big(Webserver &webserv, configParser::
 	}
 	if(server.client_max_body_size < content_length)
 	{
+		std::cout << "body: " << this->_request.get_body() << std::endl;
+		std::cout << "content len: " << content_length << std::endl;
 		this->generate_error_page(webserv, "413", server);
 		if (this->_source.get_fd() != -1)
 		{
-			return -1;
+			return 1;
 		}
 		//generate headers
 		this->generate_headers();
@@ -470,14 +502,34 @@ int	Connection::write_content_to_uploads_directory()
         {
             perror("write");
             if (close(fd) == -1) {
+				// INTERNAL ISSUE
 				throw Exceptions("close call 10 failed.");
+				// conn.generate_error_page(webserver, "403", server_block);
+				// if (conn.get_source().get_fd() != -1)
+				// {
+				//     return;
+				// }
+				// conn.generate_headers();
+				// conn.get_response().assemble();
+				// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+				// return;
 			}
             return -1;
         }
         written += n;
     }
 	if (close(fd) == -1) {
+		// INTERNAL ISSUE
 		throw Exceptions("close call 11 failed.");
+		// conn.generate_error_page(webserver, "403", server_block);
+		// if (conn.get_source().get_fd() != -1)
+        // {
+        //     return;
+        // }
+		// conn.generate_headers();
+		// conn.get_response().assemble();
+		// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		// return;
 	}
 	return 1;
 }
@@ -718,7 +770,7 @@ int	Connection::handle_uploads(Webserver &webserv, configParser::ServerConfig &s
 	}
 	if(write_content_to_uploads_directory() == -1)
 	{
-		generate_error_page(webserv, "500", server); 
+		generate_error_page(webserv, "500", server);
 		if (this->_source.get_fd() != -1)
 		{
 			return -1;
@@ -742,7 +794,7 @@ void Connection::delete_file(Webserver &webserv, configParser::ServerConfig &ser
 			std::cout << "sanatized target path is: " << target_path << std::endl;
 			//does it exist?
 			struct stat st;
-			if (stat(target_path.c_str(), &st) == -1) 
+			if (stat(target_path.c_str(), &st) == -1)
 			{
 				if (errno == ENOENT)
 				{
@@ -756,7 +808,7 @@ void Connection::delete_file(Webserver &webserv, configParser::ServerConfig &ser
 					this->_response.assemble();
 					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 				}
-					
+
 				else if (errno == EACCES)
 				{
 					generate_error_page(webserv, "403", server); //not accessible
@@ -769,7 +821,7 @@ void Connection::delete_file(Webserver &webserv, configParser::ServerConfig &ser
 					this->_response.assemble();
 					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 				}
-					
+
 				else
 				{
 					generate_error_page(webserv, "500", server); //stat failed
@@ -786,7 +838,7 @@ void Connection::delete_file(Webserver &webserv, configParser::ServerConfig &ser
 			}
 
 			// is it a regular file?
-			if (!S_ISREG(st.st_mode)) 
+			if (!S_ISREG(st.st_mode))
 			{
 				generate_error_page(webserv, "403", server); //not accessible
 				if (this->_source.get_fd() != -1)
@@ -810,7 +862,7 @@ void Connection::delete_file(Webserver &webserv, configParser::ServerConfig &ser
 				this->_response.assemble();
 				webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 				return;
-			}	
+			}
 			else
 			{
 				generate_error_page(webserv, "500", server);
@@ -831,7 +883,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 	std::string request_method = this->_request.get_method();
 
 	if (request_method == "GET" || request_method == "POST") {
-		if(check_content_length_too_big(webserv, server))
+		if(request_method == "POST" && check_content_length_too_big(webserv, server))
 		{
 			return;
 		}
@@ -900,7 +952,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 						}
 					}
 				}
-				if (access(file_path.c_str() , R_OK) == -1) 
+				if (access(file_path.c_str() , R_OK) == -1)
 				{
 					std::cerr << "File doesn't exist or isn't readable." << std::endl;
 					if (errno == EACCES)
@@ -925,8 +977,8 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 					return;
 
-				} 
-				else 
+				}
+				else
 				{
 					// open file
 					// std::cout << "Am I a file?" << std::endl;
@@ -954,16 +1006,20 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 					return;
 				} else {
-					throw(std::runtime_error("stat fails but it's not 404. Let's have a look."));
+					// INTERNAL
+					this->generate_error_page(webserv, "500", server);
+					if (this->get_source().get_fd() != -1)
+					{
+					    return;
+					}
+					this->generate_headers();
+					this->get_response().assemble();
+					webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
+					return;
 				}
 			}
 		}
-	} /*else if (request_method == "POST") {
-
-
-	} */
-
-
+	}
 	else if (request_method == "DELETE") {
 
 		//is delete in the allowed_methods vector?
@@ -997,7 +1053,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 
 		if(request_method == "DELETE" && _request.get_target().compare(0, 8, "/uploads") == 0)
 		{
-			delete_file(webserv, server);	
+			delete_file(webserv, server);
 		}
 
 	}
@@ -1102,19 +1158,40 @@ int	Connection::write_to_client(Webserver &webserv) {
 	// 	std::cout << response << std::endl;
 	if (n < 0) {
 		if (close(fd) == -1) {
+			// INTERNAL ISSUE
 			throw Exceptions("close call 12 failed.");
+			// conn.generate_error_page(webserver, "403", server_block);
+			// if (conn.get_source().get_fd() != -1)
+			// {
+			//     return;
+			// }
+			// conn.generate_headers();
+			// conn.get_response().assemble();
+			// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+			// return;
 		}
 		webserv.remove_from_poll(fd);
 		this->get_socket().set_fd(-1);
 		return -1;
 	} else {
 		if (n != response.size()) {
+			// INTERNAL ERROR - what to do here??? remove the whole condition block, right!? or keeping track of n and coming back here?
 			throw Exceptions("Not the whole response was sent.");
 		}
 		// if request has Connection: close"
 		if (this->get_value_from_response_map("Connection") == "close") {
 			if (close(fd) == -1) {
+				// INTERNAL ISSUE
 				throw Exceptions("close call 13 failed.");
+				// conn.generate_error_page(webserver, "403", server_block);
+				// if (conn.get_source().get_fd() != -1)
+				// {
+				//     return;
+				// }
+				// conn.generate_headers();
+				// conn.get_response().assemble();
+				// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+				// return;
 			}
 			webserv.remove_from_poll(fd);
 			this->get_socket().set_fd(-1);
@@ -1357,7 +1434,7 @@ void Connection::reset_revents(Webserver &webserv, int fd) {
 
 void	Connection::set_time_stamp() {
 	if (time(&this->_last_active) == -1) {
-		throw(std::runtime_error("time() call failed"));
+		throw Exceptions("time() failed.");
 	}
 }
 
@@ -1374,7 +1451,17 @@ bool	Connection::is_cgi_broken(Webserver &webserver) {
 
 	int n = waitpid(this->_source.get_pid(), &status, WNOHANG);
 	if (n == -1) {
+		// INTERNAL ERROR
 		throw Exceptions("Waitpid() fails even though it shouldn't.");
+		// conn.generate_error_page(webserver, "403", server_block);
+		// if (conn.get_source().get_fd() != -1)
+        // {
+        //     return;
+        // }
+		// conn.generate_headers();
+		// conn.get_response().assemble();
+		// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		// return;
 	} else if (n == 0) {
 		//std::cout << "CGI is still running" << std::endl;
 		return false;
@@ -1396,13 +1483,33 @@ bool	Connection::is_cgi_broken(Webserver &webserver) {
 void	Connection::close_fds() {
 	if (this->_sock.get_fd() >= 0) {
 		if (close(this->_sock.get_fd()) == -1) {
+			// INTERNAL ERROR
 			throw Exceptions("close call 15 failed.");
+			// conn.generate_error_page(webserver, "403", server_block);
+			// if (conn.get_source().get_fd() != -1)
+			// {
+			//     return;
+			// }
+			// conn.generate_headers();
+			// conn.get_response().assemble();
+			// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+			// return;
 		}
 		this->_sock.set_fd(-1);
 	}
 	if (this->_source.get_fd() >= 0) {
 		if (close(this->_source.get_fd()) == -1) {
+			// INTERNAL ERROR
 			throw Exceptions("close call 16 failed.");
+			// conn.generate_error_page(webserver, "403", server_block);
+			// if (conn.get_source().get_fd() != -1)
+			// {
+			//     return;
+			// }
+			// conn.generate_headers();
+			// conn.get_response().assemble();
+			// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+			// return;
 		}
 		this->_source.set_fd(-1);
 	}

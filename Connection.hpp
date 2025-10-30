@@ -74,11 +74,11 @@ class Connection {
 		int										extract_boundary_from_content_type_header(std::string &content, std::string &boundary);
 		int										extract_multipart_content_in_request_body(std::string boundary, const std::string &request_body);
 		static const std::map<std::string, std::string>	mime_types;
-		
+
 		int										write_content_to_uploads_directory();
 		std::string								sanitize_filename(std::string filename);
 		void									delete_file(Webserver &webserv, configParser::ServerConfig &server);
-							
+
 	private:
 
 		Socket									_sock;

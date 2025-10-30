@@ -35,18 +35,48 @@ void	unblock_fd(int fd) {
 
 	flags_before = fcntl(fd, F_GETFL);
 	if (flags_before == -1) {
+		// INTERNAL ERROR
 		throw Exceptions("fcntl failed on getting flags before.");
+		// conn.generate_error_page(webserver, "403", server_block);
+		// if (conn.get_source().get_fd() != -1)
+        // {
+        //     return;
+        // }
+		// conn.generate_headers();
+		// conn.get_response().assemble();
+		// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		// return;
 	}
 
 	flags = flags_before + O_NONBLOCK;
 
 	if (fcntl(fd, F_SETFL, flags) == -1) {
+		// INTERNAL ERROR
 		throw Exceptions("fcntl failed on setting flags.");
+		// conn.generate_error_page(webserver, "403", server_block);
+		// if (conn.get_source().get_fd() != -1)
+        // {
+        //     return;
+        // }
+		// conn.generate_headers();
+		// conn.get_response().assemble();
+		// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		// return;
 	}
 
 	flags_after = fcntl(fd, F_GETFL);
 	if (flags_after == -1) {
+		// INTERNAL ERROR
 		throw Exceptions("fcntl failed on getting flags after.");
+		// conn.generate_error_page(webserver, "403", server_block);
+		// if (conn.get_source().get_fd() != -1)
+        // {
+        //     return;
+        // }
+		// conn.generate_headers();
+		// conn.get_response().assemble();
+		// webserver.add_pollout_to_socket_events(conn.get_socket().get_fd());
+		// return;
 	}
 	if (flags_after - flags_before != 2048) {
 		//std::cout << "Flags difference is: " << flags_after - flags_before << std::endl;
