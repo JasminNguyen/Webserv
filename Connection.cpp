@@ -210,6 +210,31 @@ int	Connection::read_from_source(Webserver &webserver, pollfd &poll) {
 		webserver.remove_from_poll(src_fd);
 		this->_source.set_fd(-1);
 
+		
+		if(this->_process_uses_cgi() == true)
+		{
+			if(_response.get_body().find("<html>") == std::string::npos)
+			{	
+				
+				
+				_response.set_body("");
+				// std::cout << "RESPONSE from source:" << std::endl;
+				// std::cout << _response.get_body() << std::endl;
+				configParser::ServerConfig &server = this->match_location_block(webserver);
+				generate_error_page(webserver, "500", server); // right error code?
+				//add all the other stuff needed to generate error page properly
+				if (this->_source.get_fd() != -1)
+				{
+					return 1;
+				}
+				//generate headers
+				this->generate_headers();
+				this->_response.assemble();
+				webserver.add_pollout_to_socket_events(this->get_socket().get_fd());
+				return 1; //what do I return here???
+			}
+		}
+		
 		// generate response parts
 		// this->_response.get_http_version() = "HTTP /1.1";
 		// this->_response.get_status_code() = "200";
@@ -1231,25 +1256,18 @@ configParser::ServerConfig& Connection::match_location_block(Webserver &webserv)
 			this->setLocationBlockIndex(best_index); //setting the location block index (needed in handle_request)
 			//std::cout << "location in match_location_block is here: " << &best_location->redirection_present << std::endl;
 		}
-		if (webserv.get_polls().empty()) {
-			
+		else
+		{
+			// 	_response->set_status_code("404");
+			// _response->set_body("Not Found");
+			//throw std::runtime_error("No match found in location blocks");
+			//std::cout << "No location block match found - WE ARE GENERATING THE 404 ERROR PAGE" << std::endl;
+			this->generate_error_page(webserv, "404", *matched_server);
+			//generate headers
+			this->generate_headers();
+			this->_response.assemble();
+			webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 		}
-		// else
-		// {
-		// 	// 	_response->set_status_code("404");
-		// 	// _response->set_body("Not Found");
-		// 	//throw std::runtime_error("No match found in location blocks");
-		// 	//std::cout << "No location block match found - WE ARE GENERATING THE 404 ERROR PAGE" << std::endl;
-		// 	this->generate_error_page(webserv, "404", *matched_server);
-		// 	if (this->_source.get_fd() != -1)
-		// 	{
-		// 		return;
-		// 	}
-		// 	//generate headers
-		// 	this->generate_headers();
-		// 	this->_response.assemble();
-		// 	webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
-		// }
 
 	}
 	else //if there are no locations -> we still have to construct the script_path
