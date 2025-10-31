@@ -45,7 +45,7 @@ void	Webserver::populate_socket_connections() {
 	it != this->_config.end(); it++) {
 		std::vector<Connection>::iterator con = this->_connection_exists(it);
 		if (con == this->_connections.end()) {
-			//std::cout << "Create new connection" << std::endl;
+			std::cout << "Create new connection" << std::endl;
 			//create new socket, etc.
 			//std::cout << "port:  " << it->port << " host: " <<it->host << std::endl;
 			ListeningSocket l_sock = ListeningSocket(it->port, it->host);
