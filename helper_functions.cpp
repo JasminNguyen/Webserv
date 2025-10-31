@@ -80,6 +80,6 @@ void	unblock_fd(int fd) {
 	}
 	if (flags_after - flags_before != 2048) {
 		//std::cout << "Flags difference is: " << flags_after - flags_before << std::endl;
-		std::cout << "Flags problem!" << std::endl;
+		//std::cout << "Flags problem!" << std::endl;
 	}
 }

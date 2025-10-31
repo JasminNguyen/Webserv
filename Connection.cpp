@@ -453,8 +453,8 @@ int		Connection::check_content_length_too_big(Webserver &webserv, configParser::
 	}
 	if(server.client_max_body_size < content_length)
 	{
-		std::cout << "body: " << this->_request.get_body() << std::endl;
-		std::cout << "content len: " << content_length << std::endl;
+		// std::cout << "body: " << this->_request.get_body() << std::endl;
+		// std::cout << "content len: " << content_length << std::endl;
 		this->generate_error_page(webserv, "413", server);
 		if (this->_source.get_fd() != -1)
 		{
@@ -613,7 +613,7 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 			filename = line.substr(pos_start_quote + 1, pos_end_quote - pos_start_quote -1);
 			if(filename.empty())
 			{
-				std::cout << "no filename present - just a field" << std::endl;
+				//std::cout << "no filename present - just a field" << std::endl;
 				//further parsing
 			}
 			this->filename = filename;
@@ -635,7 +635,7 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 	if(pos_content_end == std::string::npos)
 	{
 		pos_content_end = request_body.find(last_boundary);
-		std::cout << "I go in here cause I don't find a separation boundary" << std::endl;
+		//std::cout << "I go in here cause I don't find a separation boundary" << std::endl;
 	}
 	if(pos_content_end == std::string::npos)
 	{
@@ -658,7 +658,7 @@ int Connection::extract_multipart_content_in_request_body(std::string boundary, 
 }
 int	Connection::extract_boundary_from_content_type_header(std::string &content_type_header, std::string &boundary)
 {
-	std::cout << "THE CONTENT-TYPE HEADER IS: " << content_type_header << std::endl;
+	//std::cout << "THE CONTENT-TYPE HEADER IS: " << content_type_header << std::endl;
 	size_t pos_equal_sign = content_type_header.find("=");
 	if(pos_equal_sign == std::string::npos)
 	{
@@ -742,7 +742,7 @@ int	Connection::handle_uploads(Webserver &webserv, configParser::ServerConfig &s
 		webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 		return -1;
     }
-	std::cout << "BOUNDARY IS: " << boundary << std::endl;
+	//std::cout << "BOUNDARY IS: " << boundary << std::endl;
 
 	//3. extract content inbetween boundary
 	//print request first
@@ -786,12 +786,12 @@ int	Connection::handle_uploads(Webserver &webserv, configParser::ServerConfig &s
 
 void Connection::delete_file(Webserver &webserv, configParser::ServerConfig &server)
 {
-	std::cout << "WE are trying to delete a source" << std::endl;
+	//std::cout << "WE are trying to delete a source" << std::endl;
 			//is source available?
 			//what is the source? -> normalize it
 			std::string target_path = _request.get_target();
 			target_path = "." + _request.get_target();
-			std::cout << "sanatized target path is: " << target_path << std::endl;
+			//std::cout << "sanatized target path is: " << target_path << std::endl;
 			//does it exist?
 			struct stat st;
 			if (stat(target_path.c_str(), &st) == -1)
@@ -854,7 +854,7 @@ void Connection::delete_file(Webserver &webserv, configParser::ServerConfig &ser
 			//remove file
 			if (remove(target_path.c_str()) == 0)
 			{
-				std::cout << "Deleted successfully" << std::endl;
+				//std::cout << "Deleted successfully" << std::endl;
 				_response.set_status_code("204");
 				_response.set_status_string("No Content");
 				_response.set_header("Content-Length", "0");
@@ -1036,7 +1036,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 		}
 		if(delete_allowed == false)
 		{
-			std::cout << "delete is not allowed" << std::endl;
+			//std::cout << "delete is not allowed" << std::endl;
 			generate_error_page(webserv, "405", server);
 			if (this->_source.get_fd() != -1)
 			{
@@ -1048,7 +1048,7 @@ void	Connection::create_response(Webserver &webserv, configParser::ServerConfig 
 			webserv.add_pollout_to_socket_events(this->get_socket().get_fd());
 			return;
 		}
-		std::cout << "delete is  allowed" << std::endl;
+		//std::cout << "delete is  allowed" << std::endl;
 
 
 		if(request_method == "DELETE" && _request.get_target().compare(0, 8, "/uploads") == 0)

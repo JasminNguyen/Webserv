@@ -45,7 +45,7 @@ void	Webserver::populate_socket_connections() {
 	it != this->_config.end(); it++) {
 		std::vector<Connection>::iterator con = this->_connection_exists(it);
 		if (con == this->_connections.end()) {
-			std::cout << "Create new connection" << std::endl;
+			//std::cout << "Create new connection" << std::endl;
 			//create new socket, etc.
 			//std::cout << "port:  " << it->port << " host: " <<it->host << std::endl;
 			ListeningSocket l_sock = ListeningSocket(it->port, it->host);
@@ -123,8 +123,8 @@ Connection *Webserver::get_triggered_connection(int poll_fd) {
 		}
 	}
 	if (!con) {
-		std::cout << "poll_fd is: " << poll_fd << std::endl;
-		std::cout << "ERROR!!!" << std::endl;
+		//std::cout << "poll_fd is: " << poll_fd << std::endl;
+		//std::cout << "ERROR!!!" << std::endl;
 		// INTERNAL ERROR - what to do here if we get here at all ???
 		throw Exceptions("Connection not found!");
 	}
@@ -183,9 +183,8 @@ int	Webserver::event_router(Connection *con, pollfd poll) {
 			return 1;
 		}
 	} else {
-		std::cout << "WHAAAAAAAAAT???" << std::endl;
 		// INTERNAL ERROR - what to do here if we get here at all???
-		throw(std::exception());
+		throw Exceptions("event router doesn't find event.");
 	}
 }
 
@@ -201,7 +200,7 @@ void	Webserver::launch() {
 		for (size_t i = 0; i < this->_polls.size() && n > 0; ) {
 			if (this->_polls[i].revents & POLLERR + POLLNVAL) {
 
-				std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
+				//std::cout << "Triggered event: " << this->_polls[i].revents << std::endl;
 				pollfd poll = this->_polls[i];
 				con = this->get_triggered_connection(poll.fd);
 				if(con->_process_uses_cgi() && !con->get_source().get_cgi_finished())
@@ -291,7 +290,7 @@ void	Webserver::_check_for_timeouts() {
 	int status;
 	for (size_t i = 0; i < this->_connections.size(); ) {
 		if (this->_connections[i].get_socket().get_type() != "Listening Socket" && this->_connections[i].is_timed_out()) {
-			std::cout << "Connection is timed out!" << std::endl;
+			//std::cout << "Connection is timed out!" << std::endl;
 			if(this->_connections[i]._process_uses_cgi() && this->_connections[i]._is_cgi_still_running())
 			{
 				kill(this->_connections[i].get_source().get_pid(), SIGTERM);
@@ -340,7 +339,7 @@ void	Webserver::_check_for_timeouts() {
 void	Webserver::_check_for_broken_cgi() {
 	for (size_t i = 0; i < this->_connections.size(); ) {
 		if (this->_connections[i].get_source().get_pid() && !this->_connections[i].get_source().get_cgi_finished() && this->_connections[i].is_cgi_broken(*this)) {
-			std::cout << "CGI broke!" << std::endl;
+			//std::cout << "CGI broke!" << std::endl;
 			this->remove_from_poll(this->_connections[i].get_source().get_fd());
 			this->remove_connection(&(this->_connections[i]));
 		} else {
